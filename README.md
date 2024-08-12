@@ -22,7 +22,26 @@ This project uses SQLX to interact with a Postgres database.  You will need to i
 ```bash
 cargo install sqlx-cli
 ```
-To run the migrations, you will need to have a Postgres database running.  You can do this with the following:
+To run the migrations, you will need to have a Postgres database running.
+
+There are two files you need (which are part of the .gitignore) to run the database.
+First is the `.env` file which should look like the following:
+
+```
+DATABASE_URL=postgres://postgres:password@localhost/inventory
+```
+
+Next is the `database.env` file which should look like the following:
+
+```
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=password
+POSTGRES_DB=inventory
+``` 
+
+These are not stored in the repository for security reasons.  You can create these files in the root of the project.
+
+After you have created the above two files, you can now start the database with the following:
 
 ```bash
 docker compose up -d db

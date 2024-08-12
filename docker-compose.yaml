@@ -1,6 +1,4 @@
 # a docker-compose file with a db service that contains a postgresql database container and configuration
-
-version: '3.1'
 services:
     db:
         image: postgres
