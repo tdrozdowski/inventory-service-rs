@@ -3,6 +3,7 @@ pub mod person;
 #[derive(Debug)]
 pub enum RepoError {
     NotFound(String),
+    InvalidUuid(String),
     Other(String),
 }
 

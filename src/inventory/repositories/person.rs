@@ -1,27 +1,29 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
-use uuid::Uuid;
+use sqlx::types::Uuid;
+use crate::inventory::model::{CreatePersonRequest, UpdatePersonRequest};
 use crate::inventory::repositories::RepoError;
 
 #[derive(sqlx::FromRow)]
 struct PersonRow {
-    id: i64,
+    id: i32,
     alt_id: Uuid,
     name: String,
     email: String,
     created_by: String,
     created_at: DateTime<Utc>,
+    last_changed_by: String,
     last_update: DateTime<Utc>,
 }
 
 #[async_trait]
 pub trait PersonRepository {
     async fn get_all_persons(&self, last_id: Option<i32>, page_size: i64) -> Result<Vec<PersonRow>, RepoError>;
-    async fn get_person_by_id(&self, id: Uuid) -> Result<PersonRow, RepoError>;
+    async fn get_person_by_id(&self, id: i32) -> Result<PersonRow, RepoError>;
     async fn get_person_by_uuid(&self, id: Uuid) -> Result<PersonRow, RepoError>;
-    async fn create_person(&self, person: &PersonRow) -> Result<PersonRow, RepoError>;
-    async fn update_person(&self, person: &PersonRow) -> Result<PersonRow, RepoError>;
+    async fn create_person(&self, person: &CreatePersonRequest) -> Result<PersonRow, RepoError>;
+    async fn update_person(&self, person: &UpdatePersonRequest) -> Result<PersonRow, RepoError>;
     async fn delete_person(&self, id: Uuid) -> Result<PersonRow, RepoError>;
 }
 
@@ -42,7 +44,7 @@ impl PersonRepository for PersonRepositoryImpl {
             sqlx::query_as!(
                 PersonRow,
                 r#"
-                    SELECT id, alt_id, name, email, created_by, created_at, last_update
+                    SELECT id, alt_id, name, email, created_by, created_at, last_changed_by, last_update
                     FROM persons
                     WHERE id > $1
                     ORDER BY id
@@ -57,7 +59,7 @@ impl PersonRepository for PersonRepositoryImpl {
             sqlx::query_as!(
                 PersonRow,
                 r#"
-                    SELECT id, alt_id, name, email, created_by, created_at, last_update
+                    SELECT id, alt_id, name, email, created_by, created_at, last_changed_by, last_update
                     FROM persons
                     ORDER BY id
                     LIMIT $1
@@ -75,23 +77,109 @@ impl PersonRepository for PersonRepositoryImpl {
     }
 
 
-    async fn get_person_by_id(&self, id: Uuid) -> Result<PersonRow, RepoError> {
-        todo!()
+    async fn get_person_by_id(&self, id: i32) -> Result<PersonRow, RepoError> {
+        let result = sqlx::query_as!(
+            PersonRow,
+            r#"
+                SELECT id, alt_id, name, email, created_by, created_at, last_changed_by, last_update
+                FROM persons
+                WHERE id = $1
+                "#,
+            id
+        )
+            .fetch_one(&self.db)
+            .await;
+
+        match result {
+            Ok(row) => Ok(row),
+            Err(e) => Err(RepoError::Other(e.to_string())),
+        }
     }
 
     async fn get_person_by_uuid(&self, id: Uuid) -> Result<PersonRow, RepoError> {
-        todo!()
+        let result = sqlx::query_as!(
+            PersonRow,
+            r#"
+                SELECT id, alt_id, name, email, created_by, created_at, last_changed_by, last_update
+                FROM persons
+                WHERE alt_id = $1
+                "#,
+            id
+        )
+            .fetch_one(&self.db)
+            .await;
+
+        match result {
+            Ok(row) => Ok(row),
+            Err(e) => Err(RepoError::Other(e.to_string())),
+        }
     }
 
-    async fn create_person(&self, person: &PersonRow) -> Result<PersonRow, RepoError> {
-        todo!()
+    async fn create_person(&self, person: &CreatePersonRequest) -> Result<PersonRow, RepoError> {
+        let result = sqlx::query_as!(
+            PersonRow,
+            r#"
+                INSERT INTO persons (name, email, created_by)
+                VALUES ($1, $2, $3)
+                RETURNING id, alt_id, name, email, created_by, created_at, last_changed_by, last_update
+                "#,
+            person.name,
+            person.email,
+            person.created_by
+        )
+            .fetch_one(&self.db)
+            .await;
+
+        match result {
+            Ok(row) => Ok(row),
+            Err(e) => Err(RepoError::Other(e.to_string())),
+        }
     }
 
-    async fn update_person(&self, person: &PersonRow) -> Result<PersonRow, RepoError> {
-        todo!()
+    async fn update_person(&self, person: &UpdatePersonRequest) -> Result<PersonRow, RepoError> {
+        if let Ok(uuid) = Uuid::parse_str(&person.id) {
+            let result = sqlx::query_as!(
+                PersonRow,
+                r#"
+                    UPDATE persons
+                    SET name = $1, email = $2, last_changed_by = $3, last_update = $4
+                    WHERE alt_id = $5
+                    RETURNING id, alt_id, name, email, created_by, created_at, last_changed_by, last_update
+                    "#,
+                person.name,
+                person.email,
+                person.changed_by,
+                Utc::now(),
+                uuid
+            )
+                .fetch_one(&self.db)
+                .await;
+
+            match result {
+                Ok(row) => Ok(row),
+                Err(e) => Err(RepoError::Other(e.to_string())),
+            }
+        } else {
+            Err(RepoError::InvalidUuid(person.id.clone()))
+        }
     }
 
     async fn delete_person(&self, id: Uuid) -> Result<PersonRow, RepoError> {
-        todo!()
+        let result = sqlx::query_as!(
+            PersonRow,
+            r#"
+                DELETE FROM persons
+                WHERE alt_id = $1
+                RETURNING id, alt_id, name, email, created_by, created_at, last_changed_by, last_update
+                "#,
+            id
+        )
+            .fetch_one(&self.db)
+            .await;
+
+        match result {
+            Ok(row) => Ok(row),
+            Err(e) => Err(RepoError::Other(e.to_string())),
+        }
     }
 }
