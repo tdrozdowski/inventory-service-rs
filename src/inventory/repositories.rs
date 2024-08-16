@@ -1,6 +1,6 @@
-use std::sync::Arc;
 use crate::inventory::db;
 use crate::inventory::repositories::person::PersonRepository;
+use std::sync::Arc;
 
 pub mod person;
 
@@ -18,9 +18,4 @@ impl From<sqlx::Error> for RepoError {
             _ => RepoError::Other(error.to_string()),
         }
     }
-}
-
-async fn init_person_repository() -> Arc<dyn PersonRepository + Send + Sync + 'static> {
-    let db = db::db_pool().await;
-    Arc::new(person::PersonRepositoryImpl::new(db).await)
 }
