@@ -1,20 +1,20 @@
-use async_trait::async_trait;
-use chrono::{DateTime, Utc};
-use sqlx::PgPool;
-use sqlx::types::Uuid;
 use crate::inventory::model::{CreatePersonRequest, UpdatePersonRequest};
 use crate::inventory::repositories::RepoError;
+use async_trait::async_trait;
+use chrono::{DateTime, Utc};
+use sqlx::types::Uuid;
+use sqlx::PgPool;
 
-#[derive(sqlx::FromRow)]
-struct PersonRow {
-    id: i32,
-    alt_id: Uuid,
-    name: String,
-    email: String,
-    created_by: String,
-    created_at: DateTime<Utc>,
-    last_changed_by: String,
-    last_update: DateTime<Utc>,
+#[derive(sqlx::FromRow, Debug)]
+pub struct PersonRow {
+    pub id: i32,
+    pub alt_id: Uuid,
+    pub name: String,
+    pub email: String,
+    pub created_by: String,
+    pub created_at: DateTime<Utc>,
+    pub last_changed_by: String,
+    pub last_update: DateTime<Utc>,
 }
 
 #[async_trait]
@@ -92,7 +92,7 @@ impl PersonRepository for PersonRepositoryImpl {
 
         match result {
             Ok(row) => Ok(row),
-            Err(e) => Err(RepoError::Other(e.to_string())),
+            Err(e) => Err(RepoError::from(e)),
         }
     }
 
@@ -111,7 +111,7 @@ impl PersonRepository for PersonRepositoryImpl {
 
         match result {
             Ok(row) => Ok(row),
-            Err(e) => Err(RepoError::Other(e.to_string())),
+            Err(e) => Err(RepoError::from(e)),
         }
     }
 
@@ -132,7 +132,7 @@ impl PersonRepository for PersonRepositoryImpl {
 
         match result {
             Ok(row) => Ok(row),
-            Err(e) => Err(RepoError::Other(e.to_string())),
+            Err(e) => Err(RepoError::from(e)),
         }
     }
 
@@ -157,7 +157,7 @@ impl PersonRepository for PersonRepositoryImpl {
 
             match result {
                 Ok(row) => Ok(row),
-                Err(e) => Err(RepoError::Other(e.to_string())),
+                Err(e) => Err(RepoError::from(e)),
             }
         } else {
             Err(RepoError::InvalidUuid(person.id.clone()))
@@ -179,7 +179,7 @@ impl PersonRepository for PersonRepositoryImpl {
 
         match result {
             Ok(row) => Ok(row),
-            Err(e) => Err(RepoError::Other(e.to_string())),
+            Err(e) => Err(RepoError::from(e)),
         }
     }
 }
