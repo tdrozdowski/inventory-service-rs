@@ -3,4 +3,3 @@
 *.env
 database.env
 data
-.sqlx
