@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::types::Uuid;
 use sqlx::PgPool;
+use std::fmt::Debug;
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct PersonRow {
@@ -18,7 +19,7 @@ pub struct PersonRow {
 }
 
 #[async_trait]
-pub trait PersonRepository {
+pub trait PersonRepository: Debug {
     async fn get_all_persons(
         &self,
         last_id: Option<i32>,
@@ -31,6 +32,7 @@ pub trait PersonRepository {
     async fn delete_person(&self, id: Uuid) -> Result<PersonRow, RepoError>;
 }
 
+#[derive(Debug)]
 pub struct PersonRepositoryImpl {
     pub db: PgPool,
 }
