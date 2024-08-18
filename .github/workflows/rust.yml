@@ -14,10 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    - name: Install SQLX CLI
+      run: cargo install sqlx-cli --no-default-features --features postgres
     - name: Build
       run: cargo build --verbose
     - name: Docker Compose
       run: docker compose up -d
+    - name: Run migrations
+      run: sqlx migrate prepare --database-url postgresql://inventory:secret@localhost:5432/inventory
     - name: Run tests
       env:
         DATABASE_URL: postgresql://inventory:secret@localhost:5432/inventory
