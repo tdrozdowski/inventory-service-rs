@@ -21,7 +21,7 @@ jobs:
     - name: Docker Compose
       run: docker compose up -d
     - name: Run migrations
-      run: sqlx migrate prepare --database-url postgresql://inventory:secret@localhost:5432/inventory
+      run: sqlx database setup --database-url postgresql://inventory:secret@localhost:5432/inventory
     - name: Run tests
       env:
         DATABASE_URL: postgresql://inventory:secret@localhost:5432/inventory
