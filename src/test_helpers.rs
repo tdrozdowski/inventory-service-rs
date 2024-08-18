@@ -10,3 +10,7 @@ pub fn first_person_uuid() -> Uuid {
 pub fn invalid_uuid() -> Uuid {
     Uuid::parse_str(INVALID_UUID).unwrap()
 }
+
+pub fn string_to_uuid(s: &str) -> Uuid {
+    Uuid::parse_str(s).unwrap()
+}

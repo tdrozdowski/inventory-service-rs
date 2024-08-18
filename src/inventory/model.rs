@@ -24,6 +24,7 @@ pub struct UpdatePersonRequest {
     pub changed_by: String,
 }
 
+#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize, Hash)]
 pub struct AuditInfo {
     pub created_by: String,
     pub created_at: DateTime<Utc>,
@@ -31,6 +32,7 @@ pub struct AuditInfo {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Hash)]
 pub struct Person {
     pub seq: i32,
     pub id: String,

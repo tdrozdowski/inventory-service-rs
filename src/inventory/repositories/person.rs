@@ -2,11 +2,12 @@ use crate::inventory::model::{CreatePersonRequest, UpdatePersonRequest};
 use crate::inventory::repositories::RepoError;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use mockall::automock;
 use sqlx::types::Uuid;
 use sqlx::PgPool;
 use std::fmt::Debug;
 
-#[derive(sqlx::FromRow, Debug)]
+#[derive(sqlx::FromRow, Debug, Clone)]
 pub struct PersonRow {
     pub id: i32,
     pub alt_id: Uuid,
@@ -19,6 +20,7 @@ pub struct PersonRow {
 }
 
 #[async_trait]
+#[automock]
 pub trait PersonRepository: Debug {
     async fn get_all_persons(
         &self,
