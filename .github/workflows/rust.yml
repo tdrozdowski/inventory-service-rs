@@ -8,12 +8,11 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  DATABASE_URL: postgresql://inventory:secret@localhost:5432/inventory
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
     - name: Build
