@@ -8,7 +8,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  DATABASE_URL: postgresql://inventory:secret@localhost:5432/inventory
 
 jobs:
   build:
@@ -20,4 +19,6 @@ jobs:
     - name: Docker Compose
       run: docker compose up -d
     - name: Run tests
+      env:
+        DATABASE_URL: postgresql://inventory:secret@localhost:5432/inventory
       run: cargo test --verbose
