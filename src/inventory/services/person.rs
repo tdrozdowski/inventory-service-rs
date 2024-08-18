@@ -53,7 +53,7 @@ impl PersonService for PersonServiceImpl {
         last_id: Option<i32>,
         page_size: i64,
     ) -> Result<Vec<Person>, ServiceError> {
-        let results = self.person_repo.get_all_persons(None, 100).await;
+        let results = self.person_repo.get_all_persons(last_id, page_size).await;
         match results {
             Ok(persons) => Ok(persons.into_iter().map(Person::from).collect()),
             Err(e) => Err(e.into()),
@@ -80,6 +80,9 @@ impl PersonService for PersonServiceImpl {
         &self,
         update_person_request: UpdatePersonRequest,
     ) -> Result<Person, ServiceError> {
+        if let Err(e) = update_person_request.validate() {
+            return Err(e.into());
+        }
         let results = self.person_repo.update_person(&update_person_request).await;
         match results {
             Ok(person) => Ok(person.into()),
@@ -130,9 +133,10 @@ impl From<Person> for PersonRow {
 
 #[cfg(test)]
 mod tests {
-    use crate::inventory::model::{AuditInfo, Person};
+    use crate::inventory::model::{AuditInfo, CreatePersonRequest, Person, UpdatePersonRequest};
     use crate::inventory::repositories::person::{MockPersonRepository, PersonRow};
     use crate::inventory::services::person::{PersonService, PersonServiceImpl};
+    use crate::inventory::services::ServiceError;
     use std::sync::{Arc, Once};
     use tracing::Level;
     use uuid::Uuid;
@@ -199,5 +203,166 @@ mod tests {
         let persons = result.unwrap();
         assert_eq!(persons.len(), 1);
         assert_eq!(persons[0].id, expected_results.id);
+    }
+
+    #[tokio::test]
+    async fn test_create_person() {
+        init();
+        let mut mock_repo = MockPersonRepository::new();
+        let uuid = Uuid::new_v4();
+        let seq = 1;
+        let expected_results = create_person(uuid, seq);
+        let mock_expected_results = PersonRow::from(expected_results.clone());
+        mock_repo.expect_create_person().returning(move |_| {
+            let cloned_results = mock_expected_results.clone();
+            Box::pin(async move { Ok(cloned_results) })
+        });
+        let service = PersonServiceImpl::new(Arc::new(mock_repo));
+        let request = CreatePersonRequest {
+            name: expected_results.name.clone(),
+            email: expected_results.email.clone(),
+            created_by: "test".to_string(),
+        };
+        let result = service.create_person(request).await;
+        assert!(result.is_ok());
+        let person = result.unwrap();
+        assert_eq!(person.id, expected_results.id);
+    }
+
+    #[tokio::test]
+    async fn test_create_person_invalid_email() {
+        init();
+        let mut mock_repo = MockPersonRepository::new();
+        mock_repo.expect_create_person().never();
+        let service = PersonServiceImpl::new(Arc::new(mock_repo));
+        let request = CreatePersonRequest {
+            name: "Test Person".to_string(),
+            email: "test".to_string(),
+            created_by: "test".to_string(),
+        };
+        let result = service.create_person(request).await;
+        assert!(result.is_err());
+        match result {
+            Err(e) => match e {
+                ServiceError::InputValidationError(_) => assert!(true),
+                _ => assert!(false, "Expected InputValidationError, got {:?}", e),
+            },
+            _ => panic!("Expected an error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_update_person() {
+        init();
+        let mut mock_repo = MockPersonRepository::new();
+        let uuid = Uuid::new_v4();
+        let seq = 1;
+        let expected_results = create_person(uuid, seq);
+        let mock_expected_results = PersonRow::from(expected_results.clone());
+        mock_repo.expect_update_person().returning(move |_| {
+            let cloned_results = mock_expected_results.clone();
+            Box::pin(async move { Ok(cloned_results) })
+        });
+        let service = PersonServiceImpl::new(Arc::new(mock_repo));
+        let request = UpdatePersonRequest {
+            id: expected_results.id.clone(),
+            name: expected_results.name.clone(),
+            email: expected_results.email.clone(),
+            changed_by: "test".to_string(),
+        };
+        let result = service.update_person(request).await;
+        assert!(result.is_ok());
+        let person = result.unwrap();
+        assert_eq!(person.id, expected_results.id);
+    }
+
+    #[tokio::test]
+    async fn test_update_person_invalid_email() {
+        init();
+        let mut mock_repo = MockPersonRepository::new();
+        mock_repo.expect_update_person().never();
+        let service = PersonServiceImpl::new(Arc::new(mock_repo));
+        let request = UpdatePersonRequest {
+            id: Uuid::new_v4().to_string(),
+            name: "Test Person".to_string(),
+            email: "test".to_string(),
+            changed_by: "test".to_string(),
+        };
+        let result = service.update_person(request).await;
+        assert!(result.is_err());
+        match result {
+            Err(e) => match e {
+                ServiceError::InputValidationError(_) => assert!(true),
+                _ => assert!(false, "Expected InputValidationError, got {:?}", e),
+            },
+            _ => panic!("Expected an error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_delete_person() {
+        init();
+        let mut mock_repo = MockPersonRepository::new();
+        let uuid = Uuid::new_v4();
+        let seq = 1;
+        let expected_results = create_person(uuid, seq);
+        let mock_expected_results = PersonRow::from(expected_results.clone());
+        mock_repo.expect_delete_person().returning(move |_| {
+            let cloned_results = mock_expected_results.clone();
+            Box::pin(async move { Ok(cloned_results) })
+        });
+        let service = PersonServiceImpl::new(Arc::new(mock_repo));
+        let result = service.delete_person(uuid).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_person_from_row() {
+        let row = PersonRow {
+            id: 1,
+            alt_id: Uuid::new_v4(),
+            name: "Test Person".to_string(),
+            email: "test@testing.com".to_string(),
+            created_by: "testuser".to_string(),
+            created_at: chrono::Utc::now(),
+            last_changed_by: "testuser".to_string(),
+            last_update: chrono::Utc::now(),
+        };
+
+        let person = Person::from(row.clone());
+        assert_eq!(person.seq, row.id);
+        assert_eq!(person.id, row.alt_id.to_string());
+        assert_eq!(person.name, row.name);
+        assert_eq!(person.email, row.email);
+        assert_eq!(person.audit_info.created_by, row.created_by);
+        assert_eq!(person.audit_info.created_at, row.created_at);
+        assert_eq!(person.audit_info.changed_by, row.last_changed_by);
+        assert_eq!(person.audit_info.updated_at, row.last_update);
+    }
+
+    #[tokio::test]
+    async fn test_row_from_person() {
+        let person = Person {
+            seq: 1,
+            id: Uuid::new_v4().to_string(),
+            name: "Test Person".to_string(),
+            email: "testing@test.com".to_string(),
+            audit_info: AuditInfo {
+                created_by: "testuser".to_string(),
+                created_at: chrono::Utc::now(),
+                changed_by: "testuser".to_string(),
+                updated_at: chrono::Utc::now(),
+            },
+        };
+
+        let row = PersonRow::from(person.clone());
+        assert_eq!(row.id, person.seq);
+        assert_eq!(row.alt_id, Uuid::parse_str(person.id.as_str()).unwrap());
+        assert_eq!(row.name, person.name);
+        assert_eq!(row.email, person.email);
+        assert_eq!(row.created_by, person.audit_info.created_by);
+        assert_eq!(row.created_at, person.audit_info.created_at);
+        assert_eq!(row.last_changed_by, person.audit_info.changed_by);
+        assert_eq!(row.last_update, person.audit_info.updated_at);
     }
 }
