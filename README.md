@@ -1,6 +1,7 @@
 # Inventory Service - Rust
 
 ![Current Build](https://github.com/tdrozdowski/inventory-service-rs/actions/workflows/main.yml/badge.svg)
+[![codecov](https://codecov.io/github/tdrozdowski/inventory-service-rs/graph/badge.svg?token=GG5U2E7ZON)](https://codecov.io/github/tdrozdowski/inventory-service-rs)
 
 A sample RESTful API written with Rust and Axum. Leverages the SQLX project for data access to Postgres.
 
