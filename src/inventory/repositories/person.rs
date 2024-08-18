@@ -19,7 +19,11 @@ pub struct PersonRow {
 
 #[async_trait]
 pub trait PersonRepository {
-    async fn get_all_persons(&self, last_id: Option<i32>, page_size: i64) -> Result<Vec<PersonRow>, RepoError>;
+    async fn get_all_persons(
+        &self,
+        last_id: Option<i32>,
+        page_size: i64,
+    ) -> Result<Vec<PersonRow>, RepoError>;
     async fn get_person_by_id(&self, id: i32) -> Result<PersonRow, RepoError>;
     async fn get_person_by_uuid(&self, id: Uuid) -> Result<PersonRow, RepoError>;
     async fn create_person(&self, person: &CreatePersonRequest) -> Result<PersonRow, RepoError>;
@@ -39,7 +43,11 @@ impl PersonRepositoryImpl {
 
 #[async_trait]
 impl PersonRepository for PersonRepositoryImpl {
-    async fn get_all_persons(&self, last_id: Option<i32>, page_size: i64) -> Result<Vec<PersonRow>, RepoError> {
+    async fn get_all_persons(
+        &self,
+        last_id: Option<i32>,
+        page_size: i64,
+    ) -> Result<Vec<PersonRow>, RepoError> {
         let result = if let Some(id) = last_id {
             sqlx::query_as!(
                 PersonRow,
@@ -76,7 +84,6 @@ impl PersonRepository for PersonRepositoryImpl {
         }
     }
 
-
     async fn get_person_by_id(&self, id: i32) -> Result<PersonRow, RepoError> {
         let result = sqlx::query_as!(
             PersonRow,
@@ -87,8 +94,8 @@ impl PersonRepository for PersonRepositoryImpl {
                 "#,
             id
         )
-            .fetch_one(&self.db)
-            .await;
+        .fetch_one(&self.db)
+        .await;
 
         match result {
             Ok(row) => Ok(row),
@@ -106,8 +113,8 @@ impl PersonRepository for PersonRepositoryImpl {
                 "#,
             id
         )
-            .fetch_one(&self.db)
-            .await;
+        .fetch_one(&self.db)
+        .await;
 
         match result {
             Ok(row) => Ok(row),

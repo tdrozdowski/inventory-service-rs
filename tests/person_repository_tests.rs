@@ -1,9 +1,13 @@
 #[cfg(test)]
 mod tests {
     use inventory_service::inventory::model::{CreatePersonRequest, UpdatePersonRequest};
-    use inventory_service::inventory::repositories::person::{PersonRepository, PersonRepositoryImpl, PersonRow};
+    use inventory_service::inventory::repositories::person::{
+        PersonRepository, PersonRepositoryImpl, PersonRow,
+    };
     use inventory_service::inventory::repositories::RepoError;
-    use inventory_service::test_helpers::{first_person_uuid, invalid_uuid, FIRST_PERSON_ID, FIRST_PERSON_UUID};
+    use inventory_service::test_helpers::{
+        first_person_uuid, invalid_uuid, FIRST_PERSON_ID, FIRST_PERSON_UUID,
+    };
     use sqlx::PgPool;
     use std::sync::Once;
     use tracing::Level;
@@ -30,12 +34,16 @@ mod tests {
         let people_page2 = result.unwrap();
         assert_eq!(people_page2.len(), 10);
         // get the final page
-        let result = repository.get_all_persons(Some(people_page2[9].id), 10).await;
+        let result = repository
+            .get_all_persons(Some(people_page2[9].id), 10)
+            .await;
         assert!(result.is_ok());
         let people_page3 = result.unwrap();
         assert_eq!(people_page3.len(), 3);
         // test there are no further pages
-        let result = repository.get_all_persons(Some(people_page3[2].id), 10).await;
+        let result = repository
+            .get_all_persons(Some(people_page3[2].id), 10)
+            .await;
         assert!(result.is_ok());
         let people_page4 = result.unwrap();
         assert_eq!(people_page4.len(), 0);
@@ -186,7 +194,9 @@ mod tests {
         match result {
             Ok(_) => assert!(false),
             Err(e) => match e {
-                RepoError::UniqueViolation(msg) => assert!(true, "Got UniqueViolation with message: {:?}", msg),
+                RepoError::UniqueViolation(msg) => {
+                    assert!(true, "Got UniqueViolation with message: {:?}", msg)
+                }
                 re => assert!(false, "Expected UniqueViolation, got {:?}", re),
             },
         }
