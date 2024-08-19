@@ -7,6 +7,7 @@ use crate::inventory::services::person::{PersonService, PersonServiceImpl};
 use sqlx::PgPool;
 use std::sync::Arc;
 
+#[derive(Clone, Debug)]
 pub struct AppContext {
     pub person_service: Arc<dyn PersonService + Send + 'static>,
 }

@@ -2,6 +2,11 @@ use chrono::{DateTime, Utc};
 use garde::Validate;
 use serde::{Deserialize, Serialize};
 
+#[derive(Deserialize)]
+pub struct Pagination {
+    last_id: Option<String>,
+    page_size: i64,
+}
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Hash, Validate)]
 pub struct CreatePersonRequest {
     #[garde(length(min = 3, max = 50))]

@@ -10,6 +10,7 @@ pub enum ServiceError {
     UnexpectedError(String),
     UniqueViolation(String),
     InputValidationError(String),
+    Other(String),
 }
 
 impl From<RepoError> for ServiceError {

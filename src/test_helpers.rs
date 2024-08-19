@@ -1,3 +1,6 @@
+use crate::inventory::services::person::MockPersonService;
+use crate::AppContext;
+use std::sync::Arc;
 use uuid::Uuid;
 
 pub const FIRST_PERSON_UUID: &str = "2b1b425e-dee2-4227-8d94-f470a0ce0cd0";
@@ -13,4 +16,9 @@ pub fn invalid_uuid() -> Uuid {
 
 pub fn string_to_uuid(s: &str) -> Uuid {
     Uuid::parse_str(s).unwrap()
+}
+
+pub fn test_app_context(mock_person_service: MockPersonService) -> AppContext {
+    let person_service = Arc::new(mock_person_service);
+    AppContext { person_service }
 }

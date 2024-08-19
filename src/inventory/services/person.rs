@@ -6,9 +6,11 @@ use async_trait::async_trait;
 use garde::Validate;
 use std::fmt::Debug;
 use std::sync::Arc;
+use tracing::instrument;
 use uuid::Uuid;
 
 #[async_trait]
+#[mockall::automock]
 pub trait PersonService: Sync + Send + Debug + 'static {
     async fn get_person(&self, id: Uuid) -> Result<Person, ServiceError>;
     async fn get_persons(
@@ -39,8 +41,8 @@ impl PersonServiceImpl {
 }
 
 #[async_trait]
-#[mockall::automock]
 impl PersonService for PersonServiceImpl {
+    #[instrument]
     async fn get_person(&self, id: Uuid) -> Result<Person, ServiceError> {
         let results = self.person_repo.get_person_by_uuid(id).await;
         match results {
@@ -49,6 +51,7 @@ impl PersonService for PersonServiceImpl {
         }
     }
 
+    #[instrument]
     async fn get_persons(
         &self,
         last_id: Option<i32>,
@@ -61,6 +64,7 @@ impl PersonService for PersonServiceImpl {
         }
     }
 
+    #[instrument]
     async fn create_person(
         &self,
         create_person_request: CreatePersonRequest,
@@ -77,6 +81,7 @@ impl PersonService for PersonServiceImpl {
         }
     }
 
+    #[instrument]
     async fn update_person(
         &self,
         update_person_request: UpdatePersonRequest,
@@ -91,6 +96,7 @@ impl PersonService for PersonServiceImpl {
         }
     }
 
+    #[instrument]
     async fn delete_person(&self, id: Uuid) -> Result<(), ServiceError> {
         let results = self.person_repo.delete_person(id).await;
         match results {
