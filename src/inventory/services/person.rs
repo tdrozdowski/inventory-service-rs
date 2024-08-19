@@ -9,7 +9,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 #[async_trait]
-trait PersonService: Sync + Send + Debug + 'static {
+pub trait PersonService: Sync + Send + Debug + 'static {
     async fn get_person(&self, id: Uuid) -> Result<Person, ServiceError>;
     async fn get_persons(
         &self,
@@ -28,17 +28,18 @@ trait PersonService: Sync + Send + Debug + 'static {
 }
 
 #[derive(Debug)]
-struct PersonServiceImpl {
+pub struct PersonServiceImpl {
     person_repo: Arc<dyn PersonRepository + Send + Sync>,
 }
 
 impl PersonServiceImpl {
-    fn new(person_repo: Arc<dyn PersonRepository + Send + Sync>) -> PersonServiceImpl {
+    pub(crate) fn new(person_repo: Arc<dyn PersonRepository + Send + Sync>) -> PersonServiceImpl {
         PersonServiceImpl { person_repo }
     }
 }
 
 #[async_trait]
+#[mockall::automock]
 impl PersonService for PersonServiceImpl {
     async fn get_person(&self, id: Uuid) -> Result<Person, ServiceError> {
         let results = self.person_repo.get_person_by_uuid(id).await;
