@@ -1,5 +1,6 @@
 use crate::inventory::services::person::MockPersonService;
 use crate::AppContext;
+use std::future::IntoFuture;
 use std::sync::Arc;
 use uuid::Uuid;
 

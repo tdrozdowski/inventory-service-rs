@@ -23,3 +23,6 @@ uuid = { version = "1.6.1", features = ["serde", "v4"] }
 utoipa = { version = "4.1.0", features = ["axum_extras"] }
 utoipa-redoc = "4.0.0"
 rand = "0.8.5"
+reqwest = { version = "0.12.7", features = ["json", "multipart"] }
+tower-service = "0.3"
+tower = { version = "0.5", features = ["full"] }
