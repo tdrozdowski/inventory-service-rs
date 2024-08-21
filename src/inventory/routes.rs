@@ -28,13 +28,11 @@ pub fn person_routes() -> Router<AppContext> {
 
 #[cfg(test)]
 mod tests {
-    use crate::inventory::model::Person;
+    use crate::inventory::model::{CreatePersonRequest, Person};
     use crate::inventory::routes::person_routes;
     use crate::inventory::services::person::MockPersonService;
     use crate::test_helpers::test_app_context;
-    use crate::AppContext;
     use axum::body::Body;
-    use axum::handler::Handler;
     use axum::http::Request;
     use axum::{http, Router};
     use tower::ServiceExt;
@@ -44,6 +42,24 @@ mod tests {
             .nest("/persons", person_routes())
             .with_state(test_app_context(mock_person_service))
     }
+
+    #[tokio::test]
+    async fn test_person_routes_get_all() {
+        let mut mock_person_service = MockPersonService::new();
+        mock_person_service
+            .expect_get_persons()
+            .returning(|_, _| Box::pin(async move { Ok(vec![Person::default()]) }));
+
+        let app = app(mock_person_service).await;
+        let request = Request::builder()
+            .uri("/persons")
+            .method(http::Method::GET)
+            .body(Body::empty())
+            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        assert_eq!(response.status(), http::StatusCode::OK);
+    }
+
     #[tokio::test]
     async fn test_person_routes_get_by_id() {
         let mut mock_person_service = MockPersonService::new();
@@ -55,6 +71,41 @@ mod tests {
         let request = Request::builder()
             .uri("/persons/2b1b425e-dee2-4227-8d94-f470a0ce0cd0")
             .method(http::Method::GET)
+            .body(Body::empty())
+            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        assert_eq!(response.status(), http::StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_person_routes_create() {
+        let mut mock_person_service = MockPersonService::new();
+        mock_person_service
+            .expect_create_person()
+            .returning(|_| Box::pin(async move { Ok(Person::default()) }));
+        let new_person = CreatePersonRequest::default();
+        let app = app(mock_person_service).await;
+        let request = Request::builder()
+            .uri("/persons")
+            .header(http::header::CONTENT_TYPE, "application/json")
+            .method(http::Method::POST)
+            .body(Body::from(serde_json::to_string(&new_person).unwrap()))
+            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        assert_eq!(response.status(), http::StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_person_routes_delete() {
+        let mut mock_person_service = MockPersonService::new();
+        mock_person_service
+            .expect_delete_person()
+            .returning(|_| Box::pin(async move { Ok(()) }));
+
+        let app = app(mock_person_service).await;
+        let request = Request::builder()
+            .uri("/persons/2b1b425e-dee2-4227-8d94-f470a0ce0cd0")
+            .method(http::Method::DELETE)
             .body(Body::empty())
             .unwrap();
         let response = app.oneshot(request).await.unwrap();

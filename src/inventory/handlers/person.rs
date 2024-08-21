@@ -1,4 +1,4 @@
-use crate::inventory::model::{CreatePersonRequest, Person};
+use crate::inventory::model::{CreatePersonRequest, Pagination, Person};
 use crate::inventory::services::ServiceError;
 use crate::AppContext;
 use axum::extract::{Path, Query, State};
@@ -9,13 +9,13 @@ use uuid::Uuid;
 #[axum_macros::debug_handler]
 #[instrument]
 pub async fn get_persons(
-    Query(last_id): Query<Option<i32>>,
-    Query(page_size): Query<i64>,
+    pagination: Option<Query<Pagination>>,
     State(app_context): State<AppContext>,
 ) -> Result<Json<Vec<Person>>, ServiceError> {
+    let Query(pagination) = pagination.unwrap_or_default();
     app_context
         .person_service
-        .get_persons(last_id, page_size)
+        .get_persons(pagination.last_id, pagination.page_size) // TODO - refactor service interface to accept Option<Pagination>
         .await
         .map(Json)
 }
@@ -53,6 +53,7 @@ pub async fn get_person_by_id(
 
 #[cfg(test)]
 mod tests {
+    use crate::inventory::model::Pagination;
     use crate::inventory::services::person::MockPersonService;
     use axum::extract::{Path, Query, State};
     use axum::Json;
@@ -114,7 +115,8 @@ mod tests {
                 Box::pin(async move { Ok(cloned_persons) })
             });
         let app_context = test_app_context(mock_person_service);
-        let result = super::get_persons(Query(None), Query(100), State(app_context)).await;
+        let maybe_pagination = Some(Query(Pagination::default()));
+        let result = super::get_persons(maybe_pagination, State(app_context)).await;
         assert!(result.is_ok());
         let persons = result.unwrap().0;
         assert_eq!(persons, cloned_expected_persons);

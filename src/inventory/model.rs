@@ -2,12 +2,21 @@ use chrono::{DateTime, Utc};
 use garde::Validate;
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Pagination {
-    last_id: Option<String>,
-    page_size: i64,
+    pub(crate) last_id: Option<i32>,
+    pub(crate) page_size: i64,
 }
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Hash, Validate)]
+
+impl Default for Pagination {
+    fn default() -> Self {
+        Pagination {
+            last_id: None,
+            page_size: 10,
+        }
+    }
+}
+#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize, Hash, Validate)]
 pub struct CreatePersonRequest {
     #[garde(length(min = 3, max = 50))]
     pub name: String,
