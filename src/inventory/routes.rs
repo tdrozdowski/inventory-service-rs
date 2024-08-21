@@ -45,18 +45,15 @@ mod tests {
             .with_state(test_app_context(mock_person_service))
     }
     #[tokio::test]
-    async fn test_person_routes_get_all() {
+    async fn test_person_routes_get_by_id() {
         let mut mock_person_service = MockPersonService::new();
-        mock_person_service.expect_get_persons().returning(|_, _| {
-            Box::pin(async move {
-                let empty_vec_person: Vec<Person> = vec![];
-                Ok(empty_vec_person)
-            })
-        });
+        mock_person_service
+            .expect_get_person()
+            .returning(|_| Box::pin(async move { Ok(Person::default()) }));
 
         let app = app(mock_person_service).await;
         let request = Request::builder()
-            .uri("/persons?last_id=1&page_size=10")
+            .uri("/persons/2b1b425e-dee2-4227-8d94-f470a0ce0cd0")
             .method(http::Method::GET)
             .body(Body::empty())
             .unwrap();

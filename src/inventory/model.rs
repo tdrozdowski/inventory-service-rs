@@ -37,7 +37,7 @@ pub struct AuditInfo {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Hash)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize, Hash)]
 pub struct Person {
     pub seq: i32,
     pub id: String,
