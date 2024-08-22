@@ -26,10 +26,22 @@ pub fn person_routes() -> Router<AppContext> {
         )
 }
 
+fn all_routes() -> Router<AppContext> {
+    Router::new().nest("/persons", person_routes())
+}
+
+fn v1_routes() -> Router<AppContext> {
+    Router::new().nest("/v1", all_routes())
+}
+
+fn api_routes() -> Router<AppContext> {
+    Router::new().nest("/api", v1_routes())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::inventory::model::{CreatePersonRequest, Person};
-    use crate::inventory::routes::person_routes;
+    use crate::inventory::routes::{api_routes, person_routes};
     use crate::inventory::services::person::MockPersonService;
     use crate::test_helpers::test_app_context;
     use axum::body::Body;
@@ -41,6 +53,10 @@ mod tests {
         Router::new()
             .nest("/persons", person_routes())
             .with_state(test_app_context(mock_person_service))
+    }
+
+    async fn app_v1(mock_person_service: MockPersonService) -> Router {
+        api_routes().with_state(test_app_context(mock_person_service))
     }
 
     #[tokio::test]
@@ -106,6 +122,23 @@ mod tests {
         let request = Request::builder()
             .uri("/persons/2b1b425e-dee2-4227-8d94-f470a0ce0cd0")
             .method(http::Method::DELETE)
+            .body(Body::empty())
+            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        assert_eq!(response.status(), http::StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_api_v1_get_person_by_id_route() {
+        let mut mock_person_service = MockPersonService::new();
+        mock_person_service
+            .expect_get_person()
+            .returning(|_| Box::pin(async move { Ok(Person::default()) }));
+
+        let app = app_v1(mock_person_service).await;
+        let request = Request::builder()
+            .uri("/api/v1/persons/2b1b425e-dee2-4227-8d94-f470a0ce0cd0")
+            .method(http::Method::GET)
             .body(Body::empty())
             .unwrap();
         let response = app.oneshot(request).await.unwrap();
