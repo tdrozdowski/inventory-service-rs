@@ -1,0 +1,54 @@
+POST http://localhost:3000/api/v1/authorize
+Content-Type: application/json
+
+{
+  "client_id": "foo",
+  "client_secret": "bar"
+}
+
+> {%
+    client.global.set("access_token", response.body.token);
+%}
+
+###
+
+OPTIONS http://localhost:3000/api/v1/persons?page_size=100
+Authorization: Bearer {{access_token}}
+
+###
+
+GET http://localhost:3000/api/v1/persons?page_size=20&last_id=11
+Authorization: Bearer {{access_token}}
+
+###
+POST http://localhost:3000/api/v1/persons
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "name": "Testing Tester",
+  "email": "testing.tester@test.com",
+  "created_by": "terry"
+}
+
+> {%
+    client.global.set("new_user_id", response.body.id);
+%}
+
+###
+
+OPTIONS http://localhost:3000/api/v1/persons/{{new_user_id}}
+Authorization: Bearer {{access_token}}
+
+###
+
+GET http://localhost:3000/api/v1/persons/{{new_user_id}}
+Authorization: Bearer {{access_token}}
+
+###
+
+DELETE http://localhost:3000/api/v1/persons/{{new_user_id}}
+Authorization: Bearer {{access_token}}
+
+###
+

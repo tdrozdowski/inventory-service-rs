@@ -1,4 +1,5 @@
 pub mod inventory;
+pub mod jwt;
 pub mod test_helpers;
 
 use crate::inventory::db::initialize_db_pool;
@@ -6,6 +7,7 @@ use crate::inventory::repositories::person::PersonRepositoryImpl;
 use crate::inventory::services::person::{PersonService, PersonServiceImpl};
 use axum::extract::MatchedPath;
 use axum::http::Request;
+use axum::Router;
 use sqlx::PgPool;
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
@@ -31,7 +33,9 @@ impl AppContext {
 
 pub async fn start_server() {
     let app_context = AppContext::new().await;
-    let app = inventory::routes::api_routes()
+    let app = Router::new()
+        .nest("/api/v1/authorize", jwt::route())
+        .merge(inventory::routes::api_routes())
         .with_state(app_context)
         .layer(
             TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {

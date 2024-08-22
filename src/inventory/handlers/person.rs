@@ -1,18 +1,21 @@
 use crate::inventory::model::{CreatePersonRequest, Pagination, Person};
 use crate::inventory::services::ServiceError;
+use crate::jwt::Claims;
 use crate::AppContext;
 use axum::extract::{Path, Query, State};
 use axum::Json;
-use tracing::instrument;
+use tracing::{debug, instrument};
 use uuid::Uuid;
 
 #[axum_macros::debug_handler]
 #[instrument]
 pub async fn get_persons(
+    claims: Claims,
     pagination: Option<Query<Pagination>>,
     State(app_context): State<AppContext>,
 ) -> Result<Json<Vec<Person>>, ServiceError> {
     let Query(pagination) = pagination.unwrap_or_default();
+    debug!("Claims: {:?}", claims);
     app_context
         .person_service
         .get_persons(pagination.last_id, pagination.page_size) // TODO - refactor service interface to accept Option<Pagination>
@@ -23,9 +26,11 @@ pub async fn get_persons(
 #[axum_macros::debug_handler]
 #[instrument]
 pub async fn create_person(
+    claims: Claims,
     State(app_context): State<AppContext>,
     Json(person): Json<CreatePersonRequest>,
 ) -> Result<Json<Person>, ServiceError> {
+    debug!("Claims: {:?}", claims);
     app_context
         .person_service
         .create_person(person)
@@ -36,18 +41,22 @@ pub async fn create_person(
 #[axum_macros::debug_handler]
 #[instrument]
 pub async fn delete_person(
+    claims: Claims,
     Path(id): Path<Uuid>,
     State(app_context): State<AppContext>,
 ) -> Result<Json<()>, ServiceError> {
+    debug!("Claims: {:?}", claims);
     app_context.person_service.delete_person(id).await.map(Json)
 }
 
 #[axum_macros::debug_handler]
 #[instrument]
 pub async fn get_person_by_id(
+    claims: Claims,
     Path(id): Path<Uuid>,
     State(app_context): State<AppContext>,
 ) -> Result<Json<Person>, ServiceError> {
+    debug!("Claims: {:?}", claims);
     app_context.person_service.get_person(id).await.map(Json)
 }
 
@@ -55,9 +64,16 @@ pub async fn get_person_by_id(
 mod tests {
     use crate::inventory::model::Pagination;
     use crate::inventory::services::person::MockPersonService;
+    use crate::jwt::Claims;
     use axum::extract::{Path, Query, State};
     use axum::Json;
 
+    fn mock_claims() -> Claims {
+        Claims {
+            sub: "test".to_string(),
+            exp: 0,
+        }
+    }
     #[tokio::test]
     async fn test_get_person_by_id() {
         use crate::inventory::model::Person;
@@ -78,7 +94,8 @@ mod tests {
             Box::pin(async move { Ok(cloned_person) })
         });
         let app_context = test_app_context(mock_person_service);
-        let result = super::get_person_by_id(Path(Uuid::new_v4()), State(app_context)).await;
+        let result =
+            super::get_person_by_id(mock_claims(), Path(Uuid::new_v4()), State(app_context)).await;
         assert!(result.is_ok());
         let person = result.unwrap().0;
         assert_eq!(person, cloned_expeted_person);
@@ -116,7 +133,7 @@ mod tests {
             });
         let app_context = test_app_context(mock_person_service);
         let maybe_pagination = Some(Query(Pagination::default()));
-        let result = super::get_persons(maybe_pagination, State(app_context)).await;
+        let result = super::get_persons(mock_claims(), maybe_pagination, State(app_context)).await;
         assert!(result.is_ok());
         let persons = result.unwrap().0;
         assert_eq!(persons, cloned_expected_persons);
@@ -149,7 +166,7 @@ mod tests {
                 Box::pin(async move { Ok(cloned_person) })
             });
         let app_context = test_app_context(mock_person_service);
-        let result = super::create_person(State(app_context), Json(person)).await;
+        let result = super::create_person(mock_claims(), State(app_context), Json(person)).await;
         assert!(result.is_ok());
         let person = result.unwrap().0;
         assert_eq!(person, cloned_expected_person);
@@ -165,7 +182,8 @@ mod tests {
             .expect_delete_person()
             .returning(move |_| Box::pin(async move { Ok(()) }));
         let app_context = test_app_context(mock_person_service);
-        let result = super::delete_person(Path(Uuid::new_v4()), State(app_context)).await;
+        let result =
+            super::delete_person(mock_claims(), Path(Uuid::new_v4()), State(app_context)).await;
         assert!(result.is_ok());
     }
 
@@ -180,7 +198,8 @@ mod tests {
             Box::pin(async move { Err(ServiceError::NotFound("Mock NotFound".to_string())) })
         });
         let app_context = test_app_context(mock_person_service);
-        let result = super::get_person_by_id(Path(Uuid::new_v4()), State(app_context)).await;
+        let result =
+            super::get_person_by_id(mock_claims(), Path(Uuid::new_v4()), State(app_context)).await;
         assert!(result.is_err());
         let error = result.unwrap_err();
         match error {
