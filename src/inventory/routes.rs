@@ -34,7 +34,7 @@ fn v1_routes() -> Router<AppContext> {
     Router::new().nest("/v1", all_routes())
 }
 
-fn api_routes() -> Router<AppContext> {
+pub(crate) fn api_routes() -> Router<AppContext> {
     Router::new().nest("/api", v1_routes())
 }
 
