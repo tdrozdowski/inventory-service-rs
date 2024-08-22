@@ -8,6 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  JWT_SECRET: secret
 
 jobs:
   build:

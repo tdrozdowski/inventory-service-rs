@@ -64,16 +64,10 @@ pub async fn get_person_by_id(
 mod tests {
     use crate::inventory::model::Pagination;
     use crate::inventory::services::person::MockPersonService;
-    use crate::jwt::Claims;
+    use crate::test_helpers::mock_claims;
     use axum::extract::{Path, Query, State};
     use axum::Json;
 
-    fn mock_claims() -> Claims {
-        Claims {
-            sub: "test".to_string(),
-            exp: 0,
-        }
-    }
     #[tokio::test]
     async fn test_get_person_by_id() {
         use crate::inventory::model::Person;

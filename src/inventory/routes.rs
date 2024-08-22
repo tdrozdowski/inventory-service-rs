@@ -43,7 +43,7 @@ mod tests {
     use crate::inventory::model::{CreatePersonRequest, Person};
     use crate::inventory::routes::{api_routes, person_routes};
     use crate::inventory::services::person::MockPersonService;
-    use crate::test_helpers::test_app_context;
+    use crate::test_helpers::{mock_token, test_app_context};
     use axum::body::Body;
     use axum::http::Request;
     use axum::{http, Router};
@@ -69,6 +69,7 @@ mod tests {
         let app = app(mock_person_service).await;
         let request = Request::builder()
             .uri("/persons")
+            .header(http::header::AUTHORIZATION, mock_token())
             .method(http::Method::GET)
             .body(Body::empty())
             .unwrap();
@@ -86,6 +87,7 @@ mod tests {
         let app = app(mock_person_service).await;
         let request = Request::builder()
             .uri("/persons/2b1b425e-dee2-4227-8d94-f470a0ce0cd0")
+            .header(http::header::AUTHORIZATION, mock_token())
             .method(http::Method::GET)
             .body(Body::empty())
             .unwrap();
@@ -104,6 +106,7 @@ mod tests {
         let request = Request::builder()
             .uri("/persons")
             .header(http::header::CONTENT_TYPE, "application/json")
+            .header(http::header::AUTHORIZATION, mock_token())
             .method(http::Method::POST)
             .body(Body::from(serde_json::to_string(&new_person).unwrap()))
             .unwrap();
@@ -122,6 +125,7 @@ mod tests {
         let request = Request::builder()
             .uri("/persons/2b1b425e-dee2-4227-8d94-f470a0ce0cd0")
             .method(http::Method::DELETE)
+            .header(http::header::AUTHORIZATION, mock_token())
             .body(Body::empty())
             .unwrap();
         let response = app.oneshot(request).await.unwrap();
@@ -138,6 +142,7 @@ mod tests {
         let app = app_v1(mock_person_service).await;
         let request = Request::builder()
             .uri("/api/v1/persons/2b1b425e-dee2-4227-8d94-f470a0ce0cd0")
+            .header(http::header::AUTHORIZATION, mock_token())
             .method(http::Method::GET)
             .body(Body::empty())
             .unwrap();

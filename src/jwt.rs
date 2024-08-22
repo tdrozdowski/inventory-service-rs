@@ -39,10 +39,10 @@ static KEYS: Lazy<Keys> = Lazy::new(|| {
     Keys::new(secret.as_bytes())
 });
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AuthRequest {
-    client_id: String,
-    client_secret: String,
+    pub(crate) client_id: String,
+    pub(crate) client_secret: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -121,6 +121,19 @@ pub async fn authorize(Json(payload): Json<AuthRequest>) -> Result<Json<AuthResp
     } else {
         Err(AuthError::WrongCredentials)
     }
+}
+
+pub fn gen_token(auth_request: AuthRequest) -> String {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap();
+    let exp = now + std::time::Duration::from_secs(60 * 60 * 24);
+    let claims = Claims {
+        sub: auth_request.client_id,
+        exp: exp.as_secs() as usize,
+    };
+    jsonwebtoken::encode(&Header::default(), &claims, &KEYS.encoding_key)
+        .expect("Failed to generate token")
 }
 
 pub fn route() -> Router<AppContext> {

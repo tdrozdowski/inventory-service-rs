@@ -1,5 +1,6 @@
 use crate::inventory::services::person::MockPersonService;
-use crate::AppContext;
+use crate::jwt::{AuthRequest, Claims};
+use crate::{jwt, AppContext};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -21,4 +22,20 @@ pub fn string_to_uuid(s: &str) -> Uuid {
 pub fn test_app_context(mock_person_service: MockPersonService) -> AppContext {
     let person_service = Arc::new(mock_person_service);
     AppContext { person_service }
+}
+
+pub fn mock_claims() -> Claims {
+    Claims {
+        sub: "test".to_string(),
+        exp: 0,
+    }
+}
+
+pub fn mock_token() -> String {
+    let auth_request = AuthRequest {
+        client_id: "foo".to_string(),
+        client_secret: "bar".to_string(),
+    };
+    let token = jwt::gen_token(auth_request.clone());
+    format!("Bearer {}", token)
 }
