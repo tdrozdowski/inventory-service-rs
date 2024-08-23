@@ -28,3 +28,4 @@ reqwest = { version = "0.12.7", features = ["json", "multipart"] }
 tower-service = "0.3"
 tower = { version = "0.5", features = ["full"] }
 once_cell = "1.19.0"
+futures = "0.3.30"

@@ -143,3 +143,147 @@ pub fn route() -> Router<AppContext> {
             .allow_methods([Method::POST]),
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::jwt::{Claims, KEYS};
+    use crate::test_helpers::body_to_string;
+    use axum::extract::FromRequestParts;
+    use axum::response::IntoResponse;
+    use jsonwebtoken::{decode, Validation};
+    use tower::ServiceExt;
+
+    #[test]
+    fn test_gen_token() {
+        let auth_request = crate::jwt::AuthRequest {
+            client_id: "foo".to_string(),
+            client_secret: "bar".to_string(),
+        };
+        let token = crate::jwt::gen_token(auth_request);
+        assert!(!token.is_empty());
+        let token_data =
+            decode::<Claims>(token.as_str(), &KEYS.decoding_key, &Validation::default())
+                .expect("Failed to decode token");
+        assert_eq!(token_data.claims.sub, "foo");
+        assert!(token_data.claims.exp > 0);
+    }
+
+    #[tokio::test]
+    async fn test_into_response() {
+        let error = crate::jwt::AuthError::WrongCredentials;
+        let response = error.into_response();
+        assert_eq!(response.status(), 401);
+        let error = crate::jwt::AuthError::MissingCredentials;
+        let response = error.into_response();
+        assert_eq!(response.status(), 400);
+        let error = crate::jwt::AuthError::TokenCreation;
+        let response = error.into_response();
+        assert_eq!(response.status(), 500);
+        let error = crate::jwt::AuthError::InvalidToken;
+        let response = error.into_response();
+        assert_eq!(response.status(), 400);
+        let response_str = body_to_string(response.into_body()).await.unwrap();
+        assert_eq!(
+            response_str.as_bytes(),
+            r#"{"error":"Invalid token"}"#.as_bytes()
+        );
+    }
+
+    #[test]
+    fn test_display() {
+        let claims = Claims {
+            sub: "test".to_string(),
+            exp: 0,
+        };
+        let display = format!("{}", claims);
+        assert_eq!(display, "Subject: test\nExpiration: 0");
+    }
+
+    #[tokio::test]
+    async fn test_authorize() {
+        let auth_request = crate::jwt::AuthRequest {
+            client_id: "foo".to_string(),
+            client_secret: "bar".to_string(),
+        };
+        let response = crate::jwt::authorize(axum::Json(auth_request)).await;
+        assert!(response.is_ok());
+        let response = response.unwrap();
+        assert!(!response.0.token.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_authorize_wrong_credentials() {
+        let auth_request = crate::jwt::AuthRequest {
+            client_id: "foo".to_string(),
+            client_secret: "baz".to_string(),
+        };
+        let response = crate::jwt::authorize(axum::Json(auth_request)).await;
+        assert!(response.is_err());
+        let error = response.unwrap_err();
+        match error {
+            crate::jwt::AuthError::WrongCredentials => assert!(true),
+            _ => assert!(false),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_from_request_parts() {
+        let token = crate::jwt::gen_token(crate::jwt::AuthRequest {
+            client_id: "foo".to_string(),
+            client_secret: "bar".to_string(),
+        });
+        let request = axum::http::Request::builder()
+            .header("Authorization", format!("Bearer {}", token))
+            .body(())
+            .unwrap();
+        let mut parts = request.into_parts().0;
+        let claims = crate::jwt::Claims::from_request_parts(&mut parts, &())
+            .await
+            .unwrap();
+        assert_eq!(claims.sub, "foo");
+    }
+
+    #[tokio::test]
+    async fn test_from_request_parts_invalid_token() {
+        let request = axum::http::Request::builder()
+            .header("Authorization", "Bearer invalid_token")
+            .body(())
+            .unwrap();
+        let mut parts = request.into_parts().0;
+        let result = crate::jwt::Claims::from_request_parts(&mut parts, &()).await;
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            crate::jwt::AuthError::InvalidToken
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_from_request_parts_missing_token() {
+        let request = axum::http::Request::builder().body(()).unwrap();
+        let mut parts = request.into_parts().0;
+        let result = crate::jwt::Claims::from_request_parts(&mut parts, &()).await;
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            crate::jwt::AuthError::InvalidToken
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_authorize_route() {
+        let app = crate::jwt::route().with_state(crate::test_helpers::test_app_context(
+            crate::inventory::services::person::MockPersonService::new(),
+        ));
+        let request = axum::http::Request::builder()
+            .uri("/")
+            .method(axum::http::Method::POST)
+            .header("Content-Type", "application/json")
+            .body(r#"{"client_id":"foo","client_secret":"bar"}"#.to_string())
+            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        assert_eq!(response.status(), 200);
+        let body = body_to_string(response.into_body()).await.unwrap();
+        assert!(!body.is_empty());
+    }
+}

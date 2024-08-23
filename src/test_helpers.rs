@@ -1,6 +1,9 @@
 use crate::inventory::services::person::MockPersonService;
 use crate::jwt::{AuthRequest, Claims};
 use crate::{jwt, AppContext};
+use axum::body::Body;
+use futures::StreamExt;
+use std::string::FromUtf8Error;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -38,4 +41,15 @@ pub fn mock_token() -> String {
     };
     let token = jwt::gen_token(auth_request.clone());
     format!("Bearer {}", token)
+}
+
+pub async fn body_to_string(body: Body) -> Result<String, FromUtf8Error> {
+    let mut data = body.into_data_stream();
+    let mut bytes = Vec::new();
+
+    while let Some(chunk) = data.next().await {
+        bytes.extend_from_slice(&chunk.unwrap());
+    }
+
+    String::from_utf8(bytes)
 }
