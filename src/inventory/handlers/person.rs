@@ -1,13 +1,42 @@
 use crate::inventory::model::{CreatePersonRequest, Pagination, Person};
 use crate::inventory::services::ServiceError;
 use crate::jwt::Claims;
-use crate::AppContext;
+use crate::{inventory, AppContext};
 use axum::extract::{Path, Query, State};
 use axum::Json;
 use tracing::{debug, instrument};
+use utoipa::OpenApi;
 use uuid::Uuid;
 
+#[derive(OpenApi)]
+#[openapi(
+    paths(get_persons, get_person_by_id),
+    components(schemas(
+        inventory::model::Person,
+        inventory::model::ApiError,
+        inventory::model::AuditInfo
+    ))
+)]
+pub struct PersonApi;
+
 #[axum_macros::debug_handler]
+#[utoipa::path(
+    get,
+    path = "",
+    summary = "Get a list of persons",
+    description = "Returns a list of persons",
+    params(
+        Pagination,
+        ("Authorization", Header, description="Bearer token"),
+    ),
+    responses(
+        (status = 200, description = "Returns a list of persons", body=[Person]),
+        (status = 400, description = "Bad request", body=ApiError),
+        (status = 401, description = "Unauthorized", body=ApiError),
+        (status = 403, description = "Forbidden", body=ApiError),
+        (status = 500, description = "Internal server error", body=ApiError),
+    ),
+)]
 #[instrument]
 pub async fn get_persons(
     claims: Claims,
@@ -51,6 +80,23 @@ pub async fn delete_person(
 
 #[axum_macros::debug_handler]
 #[instrument]
+#[utoipa::path(
+    get,
+    path = "/{id}",
+    summary = "Get a specific person",
+    description = "Returns a specific person identified by the id",
+    params(
+        ("id" = Uuid, Path, description = "Person Id - UUID"),
+        ("Authorization", Header, description="Bearer token"),
+    ),
+    responses(
+        (status = 200, description = "Returns a list of persons", body=Person),
+        (status = 400, description = "Bad request", body=ApiError),
+        (status = 401, description = "Unauthorized", body=ApiError),
+        (status = 403, description = "Forbidden", body=ApiError),
+        (status = 500, description = "Internal server error", body=ApiError),
+    ),
+)]
 pub async fn get_person_by_id(
     claims: Claims,
     Path(id): Path<Uuid>,

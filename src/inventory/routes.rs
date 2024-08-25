@@ -3,7 +3,11 @@ use crate::AppContext;
 use axum::http::{HeaderValue, Method};
 use axum::Router;
 use tower_http::cors::CorsLayer;
+use utoipa::OpenApi;
 
+#[derive(OpenApi)]
+#[openapi(nest((path = "/v1/api/persons", api=person::PersonApi)))]
+pub struct ApiDoc;
 pub fn person_routes() -> Router<AppContext> {
     Router::new()
         .route(

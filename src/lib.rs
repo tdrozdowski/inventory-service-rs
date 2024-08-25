@@ -4,6 +4,7 @@ pub mod test_helpers;
 
 use crate::inventory::db::initialize_db_pool;
 use crate::inventory::repositories::person::PersonRepositoryImpl;
+use crate::inventory::routes::ApiDoc;
 use crate::inventory::services::person::{PersonService, PersonServiceImpl};
 use axum::extract::MatchedPath;
 use axum::http::Request;
@@ -12,6 +13,8 @@ use sqlx::PgPool;
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
 use tracing::{info, info_span};
+use utoipa::OpenApi;
+use utoipa_redoc::{Redoc, Servable};
 
 #[derive(Clone, Debug)]
 pub struct AppContext {
@@ -34,6 +37,7 @@ impl AppContext {
 pub async fn start_server() {
     let app_context = AppContext::new().await;
     let app = Router::new()
+        .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
         .nest("/api/v1/authorize", jwt::route())
         .merge(inventory::routes::api_routes())
         .with_state(app_context)
