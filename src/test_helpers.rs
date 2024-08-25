@@ -1,3 +1,4 @@
+use std::cell::OnceCell;
 use crate::inventory::services::person::MockPersonService;
 use crate::jwt::{AuthRequest, Claims};
 use crate::{jwt, AppContext};
@@ -13,11 +14,18 @@ pub const INVALID_UUID: &str = "00000000-0000-0000-0000-000000000000";
 pub const FIRST_PERSON_ID: i32 = 1;
 pub const FIRST_ITEM_ID: i32 = 1;
 
+pub const FIRST_ITEM_UUID_CELL: OnceCell<Uuid> = OnceCell::new();
+pub const INVALID_UUID_CELL: OnceCell<Uuid> = OnceCell::new();
+
 pub fn first_person_uuid() -> Uuid {
     Uuid::parse_str(FIRST_PERSON_UUID).unwrap()
 }
+
+pub fn first_item_uuid() -> Uuid {
+    FIRST_ITEM_UUID_CELL.get_or_init(|| Uuid::parse_str(FIRST_ITEM_UUID).unwrap()).clone()
+}
 pub fn invalid_uuid() -> Uuid {
-    Uuid::parse_str(INVALID_UUID).unwrap()
+    INVALID_UUID_CELL.get_or_init(|| Uuid::parse_str(INVALID_UUID).unwrap()).clone()
 }
 
 pub fn string_to_uuid(s: &str) -> Uuid {

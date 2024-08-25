@@ -1,4 +1,4 @@
-mod item;
+pub mod item;
 pub mod person;
 
 #[derive(Debug)]

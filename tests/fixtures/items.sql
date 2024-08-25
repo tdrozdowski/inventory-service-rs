@@ -1,4 +1,4 @@
--- insert 25 items for the items table
+-- insert 25 items for the items table for testing purposes
 INSERT INTO items (alt_id, name, description, unit_price, created_by, last_changed_by)
 VALUES ('6f4bdd88-d12e-421a-bac7-92ed2d9035aa', 'Item 1', 'Item 1 description', 10.00, 'unit_test', 'unit_test'),
        ('2492b388-e0b9-47ca-97a1-8f5ba75441ea', 'Item 2', 'Item 2 description', 20.00, 'unit_test', 'unit_test'),

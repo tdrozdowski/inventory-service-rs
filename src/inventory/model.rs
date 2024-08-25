@@ -3,10 +3,10 @@ use garde::Validate;
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
-#[derive(Debug, Deserialize, IntoParams)]
+#[derive(Debug, Deserialize, IntoParams, Clone, Copy)]
 pub struct Pagination {
-    pub(crate) last_id: Option<i32>,
-    pub(crate) page_size: i64,
+    pub last_id: Option<i32>,
+    pub page_size: i64,
 }
 
 impl Default for Pagination {

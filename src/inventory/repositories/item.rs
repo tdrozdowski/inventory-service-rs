@@ -54,30 +54,43 @@ impl ItemRepository for ItemRepositoryImpl {
         maybe_pagination: Option<Pagination>,
     ) -> Result<Vec<ItemRow>, RepoError> {
         let result = if let Some(pagination) = maybe_pagination {
-            sqlx::query_as!(
-                ItemRow,
-                r#"
-                    SELECT id, alt_id, name, description, unit_price, created_by, created_at, last_changed_by, last_update
-                    FROM items
-                    WHERE id > $1
-                    ORDER BY id ASC
-                    LIMIT $2
-                "#,
-                pagination.last_id,
-                pagination.page_size,
-            )
-                .fetch_all(&self.db)
-                .await
+            if let Some(last_id) = pagination.last_id {
+                sqlx::query_as!(
+                    ItemRow,
+                    r#"
+                        SELECT id, alt_id, name, description, unit_price, created_by, created_at, last_changed_by, last_update
+                        FROM items
+                        WHERE id > $1
+                        ORDER BY id
+                        LIMIT $2
+                    "#,
+                    last_id,
+                    pagination.page_size,
+                )
+                    .fetch_all(&self.db)
+                    .await
+            } else {
+                sqlx::query_as!(
+                    ItemRow,
+                    r#"
+                        SELECT id, alt_id, name, description, unit_price, created_by, created_at, last_changed_by, last_update
+                        FROM items
+                        ORDER BY id
+                        LIMIT $1
+                    "#,
+                    pagination.page_size,
+                )
+                    .fetch_all(&self.db)
+                    .await
+            }
         } else {
             sqlx::query_as!(
                 ItemRow,
                 r#"
                     SELECT id, alt_id, name, description, unit_price, created_by, created_at, last_changed_by, last_update
                     FROM items
-                    ORDER BY id ASC
-                    LIMIT $1
-                "#,
-                100,
+                    ORDER BY id
+                "#
             )
                 .fetch_all(&self.db)
                 .await
