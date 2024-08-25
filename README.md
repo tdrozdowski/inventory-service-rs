@@ -59,3 +59,43 @@ After that, you can run the migrations with the following:
 ```bash
 sqlx database setup
 ```
+
+Now you can run the application with the following:
+
+```bash
+export JWT_SECRET=secret
+export RUST_LOG=debug
+cargo run
+```
+Test out the API endpoints using the Jetbrains REST Client or Postman.
+
+Jetbrains REST Client example:
+
+First generate a token for your session and the default user/password:
+    
+    ```http
+    POST http://localhost:8080/auth/login
+    Content-Type: application/json
+    
+    {
+        "client_id": "foo",
+        "client_secret": "bar"
+    }
+    ```
+
+Then use the token to access the protected endpoints:
+
+    ```http
+    GET http://localhost:8080/inventory
+    Authorization Bearer <token here>
+    ```
+There are a set of files in the http directory that you can use to test the API.
+
+## Running Tests
+You will need to export at least the `JWT_SECRET` environment variable to run the tests. You can do this with the following:
+
+```bash
+export JWT_SECRET=secret
+cargo test
+```
+That should set you up to execute the entire test suite - assuming the postgres database is running. (see above)
