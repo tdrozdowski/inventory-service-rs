@@ -1,5 +1,3 @@
-#![feature(assert_matches)]
-
 pub mod inventory;
 pub mod jwt;
 pub mod test_helpers;

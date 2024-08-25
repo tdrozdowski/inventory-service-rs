@@ -1,16 +1,13 @@
-#![feature(assert_matches)]
-
 #[cfg(test)]
 mod tests {
     use bigdecimal::{BigDecimal, FromPrimitive};
     use inventory_service::inventory::model::{CreateItemRequest, Pagination, UpdateItemRequest};
-    use inventory_service::inventory::repositories::item::{
-        ItemRepository, ItemRepositoryImpl,
-    };
+    use inventory_service::inventory::repositories::item::{ItemRepository, ItemRepositoryImpl};
     use inventory_service::inventory::repositories::RepoError;
-    use inventory_service::test_helpers::{first_item_uuid, invalid_uuid, FIRST_ITEM_ID, FIRST_ITEM_UUID};
+    use inventory_service::test_helpers::{
+        first_item_uuid, invalid_uuid, FIRST_ITEM_ID, FIRST_ITEM_UUID,
+    };
     use sqlx::PgPool;
-    use std::assert_matches::assert_matches;
     use std::sync::Once;
     use tracing::Level;
 
@@ -42,17 +39,13 @@ mod tests {
         assert_eq!(items_page2.len(), 10);
         // get the final page
         page.last_id = Some(items_page2[9].id);
-        let result = repository
-            .get_all_items(Some(page))
-            .await;
+        let result = repository.get_all_items(Some(page)).await;
         assert!(result.is_ok());
         let items_page3 = result.unwrap();
         assert_eq!(items_page3.len(), 3);
         // test there are no further pages
         page.last_id = Some(items_page3[2].id);
-        let result = repository
-            .get_all_items(Some(page))
-            .await;
+        let result = repository.get_all_items(Some(page)).await;
         assert!(result.is_ok());
         let items_page4 = result.unwrap();
         assert_eq!(items_page4.len(), 0);
