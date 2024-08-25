@@ -10,8 +10,10 @@ use uuid::Uuid;
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(get_persons, get_person_by_id),
+    paths(get_persons, get_person_by_id, create_person, delete_person),
     components(schemas(
+        inventory::model::CreatePersonRequest,
+        inventory::model::UpdatePersonRequest,
         inventory::model::Person,
         inventory::model::ApiError,
         inventory::model::AuditInfo
@@ -54,6 +56,22 @@ pub async fn get_persons(
 
 #[axum_macros::debug_handler]
 #[instrument]
+#[utoipa::path(
+        post,
+        path = "",
+        request_body = CreatePersonRequest,
+        responses(
+            (status = 201, description = "Todo item created successfully", body = Person),
+            (status = 400, description = "Bad request", body = ApiError),
+            (status = 401, description = "Unauthorized", body = ApiError),
+            (status = 403, description = "Forbidden", body = ApiError),
+            (status = 404, description = "Not found", body = ApiError),
+            (status = 500, description = "Internal server error", body = ApiError),
+        ),
+        params(
+            ("Authorization", Header, description="Bearer token"),
+        ),
+)]
 pub async fn create_person(
     claims: Claims,
     State(app_context): State<AppContext>,
@@ -69,6 +87,24 @@ pub async fn create_person(
 
 #[axum_macros::debug_handler]
 #[instrument]
+#[utoipa::path(
+    delete,
+    path = "/{id}",
+    summary = "Remove a specific person",
+    description = "Removes a specific person",
+    params(
+        ("Authorization", Header, description="Bearer token"),
+        ("id" = Uuid, Path, description = "Person Id - UUID"),
+    ),
+    responses(
+        (status = 200, description = "Indicates success", body=String),
+        (status = 400, description = "Bad request", body=ApiError),
+        (status = 401, description = "Unauthorized", body=ApiError),
+        (status = 403, description = "Forbidden", body=ApiError),
+        (status = 404, description = "Not found", body=ApiError),
+        (status = 500, description = "Internal server error", body=ApiError),
+    ),
+)]
 pub async fn delete_person(
     claims: Claims,
     Path(id): Path<Uuid>,
