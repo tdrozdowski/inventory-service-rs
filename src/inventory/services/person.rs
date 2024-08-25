@@ -144,18 +144,9 @@ mod tests {
     use crate::inventory::repositories::person::{MockPersonRepository, PersonRow};
     use crate::inventory::services::person::{PersonService, PersonServiceImpl};
     use crate::inventory::services::ServiceError;
-    use std::sync::{Arc, Once};
-    use tracing::Level;
+    use crate::test_helpers::init;
+    use std::sync::Arc;
     use uuid::Uuid;
-
-    static TRACING: Once = Once::new();
-    pub fn init() {
-        TRACING.call_once(|| {
-            tracing_subscriber::fmt()
-                .with_max_level(Level::DEBUG)
-                .init();
-        });
-    }
 
     fn create_person(uuid: Uuid, seq: i32) -> Person {
         let name = format!("Test Person {}", uuid);

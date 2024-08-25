@@ -130,7 +130,11 @@ mod tests {
         init();
         let repository = ItemRepositoryImpl::new(pool).await;
         let result = repository.get_item_by_id(999).await;
-        assert_matches!(result, Err(RepoError::NotFound(_)));
+        assert_eq!(result.is_err(), true);
+        match result.unwrap_err() {
+            RepoError::NotFound(_) => (),
+            _ => assert!(false, "Expected NotFound error"),
+        }
     }
 
     #[sqlx::test(fixtures("items"))]
@@ -138,7 +142,11 @@ mod tests {
         init();
         let repository = ItemRepositoryImpl::new(pool).await;
         let result = repository.get_item_by_uuid(invalid_uuid()).await;
-        assert_matches!(result, Err(RepoError::NotFound(_)));
+        assert_eq!(result.is_err(), true);
+        match result.unwrap_err() {
+            RepoError::NotFound(_) => (),
+            _ => assert!(false, "Expected NotFound error"),
+        }
     }
 
     #[sqlx::test(fixtures("items"))]
@@ -153,7 +161,11 @@ mod tests {
             changed_by: "testuser".to_string(),
         };
         let result = repository.update_item(&item_request).await;
-        assert_matches!(result, Err(RepoError::NotFound(_)));
+        assert_eq!(result.is_err(), true);
+        match result.unwrap_err() {
+            RepoError::NotFound(_) => (),
+            _ => assert!(false, "Expected NotFound error"),
+        }
     }
 
     #[sqlx::test(fixtures("items"))]
@@ -161,7 +173,10 @@ mod tests {
         init();
         let repository = ItemRepositoryImpl::new(pool).await;
         let result = repository.delete_item(invalid_uuid()).await;
-        assert_matches!(result, Err(RepoError::NotFound(_)));
+        assert_eq!(result.is_err(), true);
+        match result.unwrap_err() {
+            RepoError::NotFound(_) => (),
+            _ => assert!(false, "Expected NotFound error"),
+        }
     }
-
 }

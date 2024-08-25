@@ -124,24 +124,13 @@ mod tests {
     use crate::inventory::model::{AuditInfo, CreateItemRequest, Item, UpdateItemRequest};
     use crate::inventory::repositories::item::{ItemRow, MockItemRepository};
     use crate::inventory::services::item::{ItemService, ItemServiceImpl};
-    use crate::test_helpers::string_to_uuid;
+    use crate::inventory::services::ServiceError::InputValidationError;
+    use crate::test_helpers::{init, string_to_uuid};
     use bigdecimal::{BigDecimal, FromPrimitive, ToPrimitive};
     use chrono::Utc;
     use mockall::predicate::eq;
-    use std::assert_matches::assert_matches;
-    use std::sync::{Arc, Once};
-    use tracing::Level;
+    use std::sync::Arc;
     use uuid::Uuid;
-    use crate::inventory::services::ServiceError::InputValidationError;
-
-    static TRACING: Once = Once::new();
-    pub fn init() {
-        TRACING.call_once(|| {
-            tracing_subscriber::fmt()
-                .with_max_level(Level::DEBUG)
-                .init();
-        });
-    }
 
     fn create_item(uuid: Uuid, seq: i32) -> Item {
         Item {
@@ -337,7 +326,10 @@ mod tests {
         let result = service.create_item(item_clone).await;
         assert!(result.is_err());
         let error = result.unwrap_err();
-        assert_matches!(error, crate::inventory::services::ServiceError::InputValidationError(_));
+        match error {
+            InputValidationError(msg) => assert_eq!(msg, "Invalid input: unit_price: lower than 0\n"),
+            _ => assert!(false, "Expected InvalidPrice")
+        };
     }
 
     #[tokio::test]
@@ -355,7 +347,6 @@ mod tests {
         let result = service.create_item(item_clone).await;
         assert!(result.is_err());
         let error = result.unwrap_err();
-        assert_matches!(error, InputValidationError(_));
         match error {
             InputValidationError(msg) => assert_eq!(msg, "Invalid input: name: length is lower than 3\n"),
             _ => assert!(false, "Expected InputValidationError")

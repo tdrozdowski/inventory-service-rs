@@ -5,7 +5,8 @@ use crate::{jwt, AppContext};
 use axum::body::Body;
 use futures::StreamExt;
 use std::string::FromUtf8Error;
-use std::sync::Arc;
+use std::sync::{Arc, Once};
+use tracing::Level;
 use uuid::Uuid;
 
 pub const FIRST_PERSON_UUID: &str = "2b1b425e-dee2-4227-8d94-f470a0ce0cd0";
@@ -62,4 +63,13 @@ pub async fn body_to_string(body: Body) -> Result<String, FromUtf8Error> {
     }
 
     String::from_utf8(bytes)
+}
+
+static TRACING: Once = Once::new();
+pub fn init() {
+    TRACING.call_once(|| {
+        tracing_subscriber::fmt()
+            .with_max_level(Level::DEBUG)
+            .init();
+    });
 }
