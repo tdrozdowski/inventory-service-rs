@@ -63,3 +63,41 @@ pub struct ApiError {
     pub status_code: i32,
     pub message: String,
 }
+
+#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize, Hash, ToSchema)]
+pub struct DeleteResults {
+    pub id: String,
+    pub deleted: bool,
+}
+
+#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize, Hash, ToSchema)]
+pub struct PersonList {
+    pub persons: Vec<Person>,
+    pub total: i32,
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize, ToSchema, Validate)]
+pub struct CreateItemRequest {
+    #[garde(length(min = 3, max = 255))]
+    pub name: String,
+    #[garde(skip)]
+    pub description: String,
+    #[garde(range(min = 0.0, max = 1000000.0))]
+    pub unit_price: f64,
+    #[garde(skip)]
+    pub created_by: String,
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize, ToSchema, Validate)]
+pub struct UpdateItemRequest {
+    #[garde(skip)]
+    pub id: String,
+    #[garde(length(min = 3, max = 255))]
+    pub name: String,
+    #[garde(skip)]
+    pub description: String,
+    #[garde(range(min = 0.0, max = 1000000.0))]
+    pub unit_price: f64,
+    #[garde(skip)]
+    pub changed_by: String,
+}
