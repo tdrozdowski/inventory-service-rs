@@ -101,3 +101,19 @@ pub struct UpdateItemRequest {
     #[garde(skip)]
     pub changed_by: String,
 }
+
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize, ToSchema, Validate)]
+pub struct Item {
+    #[garde(range(min = 1))]
+    pub seq: i32,
+    #[garde(skip)]
+    pub id: String,
+    #[garde(length(min = 3, max = 255))]
+    pub name: String,
+    #[garde(skip)]
+    pub description: String,
+    #[garde(range(min = 0.0, max = 1000000.0))]
+    pub unit_price: f64,
+    #[garde(skip)]
+    pub audit_info: AuditInfo,
+}
