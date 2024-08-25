@@ -8,8 +8,10 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 pub const FIRST_PERSON_UUID: &str = "2b1b425e-dee2-4227-8d94-f470a0ce0cd0";
+pub const FIRST_ITEM_UUID: &str = "6f4bdd88-d12e-421a-bac7-92ed2d9035aa";
 pub const INVALID_UUID: &str = "00000000-0000-0000-0000-000000000000";
 pub const FIRST_PERSON_ID: i32 = 1;
+pub const FIRST_ITEM_ID: i32 = 1;
 
 pub fn first_person_uuid() -> Uuid {
     Uuid::parse_str(FIRST_PERSON_UUID).unwrap()
