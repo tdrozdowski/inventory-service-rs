@@ -75,6 +75,7 @@ pub async fn get_items(
     )
 )]
 pub async fn get_item_by_id(
+    claims: Claims,
     Path(id): Path<Uuid>,
     State(app_context): State<AppContext>,
 ) -> Result<Json<Item>, ServiceError> {
@@ -235,7 +236,12 @@ mod tests {
                 Box::pin(async move { Ok(cloned_item) })
             });
         let app_context = test_app_context(MockPersonService::new(), mock_item_service);
-        let result = super::get_item_by_id(Path(first_item_uuid()), State(app_context)).await;
+        let result = super::get_item_by_id(
+            Claims::default(),
+            Path(first_item_uuid()),
+            State(app_context),
+        )
+        .await;
         assert!(result.is_ok());
         let item = result.unwrap().0;
         assert_eq!(item, expected_item);
