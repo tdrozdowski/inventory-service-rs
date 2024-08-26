@@ -6,14 +6,13 @@ use crate::jwt::Claims;
 use crate::AppContext;
 use axum::extract::{Path, Query, State};
 use axum::Json;
-use tower_service::Service;
 use tracing::instrument;
 use utoipa::OpenApi;
 use uuid::Uuid;
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(),
+    paths(get_items, get_item_by_id, create_item, update_item, delete_item),
     components(schemas(Item, CreateItemRequest, UpdateItemRequest, ApiError, AuditInfo))
 )]
 pub struct ItemApi;
@@ -43,14 +42,14 @@ pub async fn get_items(
     maybe_pagination_query: Option<Query<Pagination>>,
     State(app_context): State<AppContext>,
 ) -> Result<Json<Vec<Item>>, ServiceError> {
-    let maybe_pagination = if let Query(pagination) = maybe_pagination_query.unwrap_or_default() {
-        Some(pagination)
+    let pagination = if let Some(pagination_query) = maybe_pagination_query {
+        Some(pagination_query.0)
     } else {
         None
     };
     app_context
         .item_service
-        .get_all_items(maybe_pagination)
+        .get_all_items(pagination)
         .await
         .map(Json)
 }
@@ -183,14 +182,12 @@ pub async fn delete_item(
 
 #[cfg(test)]
 mod tests {
-    use crate::inventory::model::Item;
+    use crate::inventory::model::{Item, Pagination};
     use crate::inventory::services::item::MockItemService;
     use crate::inventory::services::person::MockPersonService;
     use crate::jwt::Claims;
-    use crate::test_helpers::{
-        first_item_uuid, test_app_context, FIRST_ITEM_UUID, FIRST_PERSON_UUID,
-    };
-    use axum::extract::{Path, State};
+    use crate::test_helpers::{first_item_uuid, test_app_context, FIRST_ITEM_UUID};
+    use axum::extract::{Path, Query, State};
 
     #[tokio::test]
     async fn test_get_items() {
@@ -211,7 +208,8 @@ mod tests {
                 Box::pin(async move { Ok(vec![cloned_item]) })
             });
         let app_context = test_app_context(MockPersonService::new(), mock_item_service);
-        let result = super::get_items(Claims::default(), None, State(app_context)).await;
+        let no_pagination: Option<Query<Pagination>> = None;
+        let result = super::get_items(Claims::default(), no_pagination, State(app_context)).await;
         assert!(result.is_ok());
         let items = result.unwrap().0;
         assert_eq!(items.len(), 1);

@@ -4,7 +4,7 @@ use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde_json::json;
 
-mod items;
+pub mod item;
 pub mod person;
 
 impl IntoResponse for ServiceError {

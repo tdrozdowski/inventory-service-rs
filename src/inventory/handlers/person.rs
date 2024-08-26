@@ -164,7 +164,7 @@ mod tests {
             email: "test@test.com".to_string(),
             audit_info: Default::default(),
         };
-        let cloned_expeted_person = expected_person.clone();
+        let cloned_expected_person = expected_person.clone();
         let mut mock_person_service = MockPersonService::new();
         mock_person_service.expect_get_person().returning(move |_| {
             let cloned_person = expected_person.clone();
@@ -175,7 +175,7 @@ mod tests {
             super::get_person_by_id(mock_claims(), Path(Uuid::new_v4()), State(app_context)).await;
         assert!(result.is_ok());
         let person = result.unwrap().0;
-        assert_eq!(person, cloned_expeted_person);
+        assert_eq!(person, cloned_expected_person);
     }
 
     #[tokio::test]
