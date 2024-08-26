@@ -1,9 +1,10 @@
-use std::cell::OnceCell;
+use crate::inventory::services::item::MockItemService;
 use crate::inventory::services::person::MockPersonService;
 use crate::jwt::{AuthRequest, Claims};
 use crate::{jwt, AppContext};
 use axum::body::Body;
 use futures::StreamExt;
+use std::cell::OnceCell;
 use std::string::FromUtf8Error;
 use std::sync::{Arc, Once};
 use tracing::Level;
@@ -23,19 +24,30 @@ pub fn first_person_uuid() -> Uuid {
 }
 
 pub fn first_item_uuid() -> Uuid {
-    FIRST_ITEM_UUID_CELL.get_or_init(|| Uuid::parse_str(FIRST_ITEM_UUID).unwrap()).clone()
+    FIRST_ITEM_UUID_CELL
+        .get_or_init(|| Uuid::parse_str(FIRST_ITEM_UUID).unwrap())
+        .clone()
 }
 pub fn invalid_uuid() -> Uuid {
-    INVALID_UUID_CELL.get_or_init(|| Uuid::parse_str(INVALID_UUID).unwrap()).clone()
+    INVALID_UUID_CELL
+        .get_or_init(|| Uuid::parse_str(INVALID_UUID).unwrap())
+        .clone()
 }
 
 pub fn string_to_uuid(s: &str) -> Uuid {
     Uuid::parse_str(s).unwrap()
 }
 
-pub fn test_app_context(mock_person_service: MockPersonService) -> AppContext {
+pub fn test_app_context(
+    mock_person_service: MockPersonService,
+    mock_item_service: MockItemService,
+) -> AppContext {
     let person_service = Arc::new(mock_person_service);
-    AppContext { person_service }
+    let item_service = Arc::new(mock_item_service);
+    AppContext {
+        person_service,
+        item_service,
+    }
 }
 
 pub fn mock_claims() -> Claims {

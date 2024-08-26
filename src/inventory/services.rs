@@ -1,8 +1,8 @@
 use crate::inventory::repositories::RepoError;
 use garde::Report;
 
+pub mod item;
 pub mod person;
-mod item;
 
 #[derive(Debug)]
 pub enum ServiceError {

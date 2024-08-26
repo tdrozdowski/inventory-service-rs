@@ -46,6 +46,7 @@ pub(crate) fn api_routes() -> Router<AppContext> {
 mod tests {
     use crate::inventory::model::{CreatePersonRequest, Person};
     use crate::inventory::routes::{api_routes, person_routes};
+    use crate::inventory::services::item::MockItemService;
     use crate::inventory::services::person::MockPersonService;
     use crate::test_helpers::{mock_token, test_app_context};
     use axum::body::Body;
@@ -56,11 +57,17 @@ mod tests {
     async fn app(mock_person_service: MockPersonService) -> Router {
         Router::new()
             .nest("/persons", person_routes())
-            .with_state(test_app_context(mock_person_service))
+            .with_state(test_app_context(
+                mock_person_service,
+                MockItemService::new(),
+            ))
     }
 
     async fn app_v1(mock_person_service: MockPersonService) -> Router {
-        api_routes().with_state(test_app_context(mock_person_service))
+        api_routes().with_state(test_app_context(
+            mock_person_service,
+            MockItemService::new(),
+        ))
     }
 
     #[tokio::test]
