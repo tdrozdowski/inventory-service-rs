@@ -1,6 +1,7 @@
 use crate::inventory::repositories::RepoError;
 use garde::Report;
 
+pub mod item;
 pub mod person;
 
 #[derive(Debug)]
@@ -10,6 +11,7 @@ pub enum ServiceError {
     UnexpectedError(String),
     UniqueViolation(String),
     InputValidationError(String),
+    InvalidPrice(String),
     Other(String),
 }
 

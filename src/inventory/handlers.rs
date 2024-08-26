@@ -4,6 +4,7 @@ use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde_json::json;
 
+pub mod item;
 pub mod person;
 
 impl IntoResponse for ServiceError {
@@ -14,6 +15,7 @@ impl IntoResponse for ServiceError {
             ServiceError::InputValidationError(e) => (StatusCode::BAD_REQUEST, e),
             ServiceError::UniqueViolation(e) => (StatusCode::CONFLICT, e),
             ServiceError::UnexpectedError(e) => (StatusCode::INTERNAL_SERVER_ERROR, e),
+            ServiceError::InvalidPrice(e) => (StatusCode::BAD_REQUEST, e),
             ServiceError::Other(e) => (StatusCode::INTERNAL_SERVER_ERROR, e),
         };
         let body = Json(json!({

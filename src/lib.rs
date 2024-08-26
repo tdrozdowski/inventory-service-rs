@@ -5,6 +5,7 @@ pub mod test_helpers;
 use crate::inventory::db::initialize_db_pool;
 use crate::inventory::repositories::person::PersonRepositoryImpl;
 use crate::inventory::routes::ApiDoc;
+use crate::inventory::services::item::ItemService;
 use crate::inventory::services::person::{PersonService, PersonServiceImpl};
 use axum::extract::MatchedPath;
 use axum::http::Request;
@@ -19,18 +20,31 @@ use utoipa_redoc::{Redoc, Servable};
 #[derive(Clone, Debug)]
 pub struct AppContext {
     pub person_service: Arc<dyn PersonService + Send + 'static>,
+    pub item_service: Arc<dyn ItemService + Send + 'static>,
 }
 
 impl AppContext {
     pub async fn new() -> Self {
         let db_pool = initialize_db_pool().await;
         let person_service = Self::init_person_service(&db_pool).await;
-        AppContext { person_service }
+        let item_service = Self::init_item_service(&db_pool).await;
+        AppContext {
+            person_service,
+            item_service,
+        }
     }
 
     async fn init_person_service(db_pool: &PgPool) -> Arc<dyn PersonService> {
         let person_repo = PersonRepositoryImpl::new(db_pool.clone()).await;
         Arc::new(PersonServiceImpl::new(Arc::new(person_repo)))
+    }
+
+    async fn init_item_service(db_pool: &PgPool) -> Arc<dyn ItemService> {
+        let item_repo =
+            inventory::repositories::item::ItemRepositoryImpl::new(db_pool.clone()).await;
+        Arc::new(inventory::services::item::ItemServiceImpl::new(Arc::new(
+            item_repo,
+        )))
     }
 }
 

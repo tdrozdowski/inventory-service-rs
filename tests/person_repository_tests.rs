@@ -5,21 +5,9 @@ mod tests {
         PersonRepository, PersonRepositoryImpl, PersonRow,
     };
     use inventory_service::inventory::repositories::RepoError;
-    use inventory_service::test_helpers::{
-        first_person_uuid, invalid_uuid, FIRST_PERSON_ID, FIRST_PERSON_UUID,
-    };
+    use inventory_service::test_helpers::{first_person_uuid, init, invalid_uuid, FIRST_PERSON_ID, FIRST_PERSON_UUID};
     use sqlx::PgPool;
-    use std::sync::Once;
-    use tracing::Level;
 
-    static TRACING: Once = Once::new();
-    pub fn init() {
-        TRACING.call_once(|| {
-            tracing_subscriber::fmt()
-                .with_max_level(Level::DEBUG)
-                .init();
-        });
-    }
     #[sqlx::test(migrations = "./migrations", fixtures("people"))]
     async fn test_get_all_persons(pool: PgPool) {
         init();

@@ -107,7 +107,8 @@ That should set you up to execute the entire test suite - assuming the postgres 
 
 ## OpenAPI
 
-This API uses OpenAPI to document the endpoints. You can view the documentation by opening the following:
+This API uses OpenAPI to document the endpoints. You can view the documentation by starting the server locally and then
+opening the following:
 
 https://localhost:3000/redoc
 
