@@ -1,6 +1,7 @@
 use crate::inventory::repositories::RepoError;
 use garde::Report;
 
+pub mod invoice;
 pub mod item;
 pub mod person;
 

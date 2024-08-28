@@ -159,4 +159,6 @@ pub struct Invoice {
     pub paid: bool,
     #[garde(skip)]
     pub audit_info: AuditInfo,
+    #[garde(skip)]
+    pub items: Vec<String>,
 }
