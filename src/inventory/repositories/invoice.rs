@@ -54,7 +54,7 @@ pub struct InvoiceRepositoryImpl {
 }
 
 impl InvoiceRepositoryImpl {
-    pub fn new(pool: sqlx::PgPool) -> Self {
+    pub async fn new(pool: sqlx::PgPool) -> Self {
         Self { pool }
     }
 }
@@ -218,13 +218,22 @@ impl InvoiceRepository for InvoiceRepositoryImpl {
         )
         .execute(&self.pool)
         .await;
-        result
-            .map(DeleteResults::from)
-            .map(|mut r| {
-                r.id = id.to_string();
-                r
-            })
-            .map_err(RepoError::from)
+
+        match result {
+            Ok(pg_result) => {
+                if pg_result.rows_affected() == 0 {
+                    Err(RepoError::NotFound(format!(
+                        "Invoice with id {} not found",
+                        id
+                    )))
+                } else {
+                    let mut delete_results = DeleteResults::from(pg_result);
+                    delete_results.id = id.to_string();
+                    Ok(delete_results)
+                }
+            }
+            Err(e) => Err(RepoError::Other(e.to_string())),
+        }
     }
 
     #[instrument]

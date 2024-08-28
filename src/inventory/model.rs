@@ -140,6 +140,8 @@ pub struct UpdateInvoiceRequest {
     #[garde(range(min = 0.0, max = 1000000.0))]
     pub total: f64,
     #[garde(skip)]
+    pub paid: bool,
+    #[garde(skip)]
     pub changed_by: String,
 }
 

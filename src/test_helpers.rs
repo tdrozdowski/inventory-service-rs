@@ -12,10 +12,12 @@ use uuid::Uuid;
 
 pub const FIRST_PERSON_UUID: &str = "2b1b425e-dee2-4227-8d94-f470a0ce0cd0";
 pub const FIRST_ITEM_UUID: &str = "6f4bdd88-d12e-421a-bac7-92ed2d9035aa";
+pub const FIRST_INVOICE_UUID: &str = "6f4bdd88-d12e-421a-bac7-92ed2d9035ba";
 pub const INVALID_UUID: &str = "00000000-0000-0000-0000-000000000000";
 pub const FIRST_PERSON_ID: i32 = 1;
 pub const FIRST_ITEM_ID: i32 = 1;
-
+pub const FIRST_INVOICE_ID: i32 = 1;
+pub const FIRST_INVOICE_UUID_CELL: OnceCell<Uuid> = OnceCell::new();
 pub const FIRST_ITEM_UUID_CELL: OnceCell<Uuid> = OnceCell::new();
 pub const INVALID_UUID_CELL: OnceCell<Uuid> = OnceCell::new();
 
@@ -31,6 +33,12 @@ pub fn first_item_uuid() -> Uuid {
 pub fn invalid_uuid() -> Uuid {
     INVALID_UUID_CELL
         .get_or_init(|| Uuid::parse_str(INVALID_UUID).unwrap())
+        .clone()
+}
+
+pub fn first_invoice_uuid() -> Uuid {
+    FIRST_INVOICE_UUID_CELL
+        .get_or_init(|| Uuid::parse_str(FIRST_INVOICE_UUID).unwrap())
         .clone()
 }
 
