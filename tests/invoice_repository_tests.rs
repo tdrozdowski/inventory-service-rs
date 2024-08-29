@@ -253,4 +253,16 @@ mod tests {
         let delete_results = result.unwrap();
         assert_eq!(delete_results.deleted, true);
     }
+
+    #[sqlx::test(fixtures("people", "items", "invoices"))]
+    async fn test_get_with_items(pool: PgPool) {
+        init();
+        let repository = InvoiceRepositoryImpl::new(pool).await;
+        let result = repository.get_with_items(first_invoice_uuid()).await;
+        assert!(result.is_ok());
+        let invoice_rows = result.unwrap();
+        assert_eq!(invoice_rows.len(), 2);
+        assert_eq!(invoice_rows[0].total, BigDecimal::from_f64(100.0).unwrap());
+        assert_eq!(invoice_rows[0].item_alt_id, first_item_uuid());
+    }
 }

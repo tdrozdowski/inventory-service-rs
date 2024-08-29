@@ -8,6 +8,7 @@ use chrono::{DateTime, Utc};
 use mockall::automock;
 use sqlx::FromRow;
 use std::fmt::Debug;
+use std::future::Future;
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -30,6 +31,23 @@ pub struct InvoiceItemRow {
     pub item_id: Uuid,
 }
 
+#[derive(Clone, Debug, FromRow)]
+pub struct InvoiceWithItemRow {
+    pub id: i32,
+    pub alt_id: Uuid,
+    pub user_id: Uuid,
+    pub total: BigDecimal,
+    pub paid: bool,
+    pub created_by: String,
+    pub created_at: DateTime<Utc>,
+    pub last_changed_by: String,
+    pub last_update: DateTime<Utc>,
+    pub item_alt_id: Uuid,
+    pub item_name: String,
+    pub item_description: String,
+    pub item_unit_price: BigDecimal,
+}
+
 #[async_trait]
 #[automock]
 pub trait InvoiceRepository: Debug {
@@ -40,6 +58,7 @@ pub trait InvoiceRepository: Debug {
     ) -> Result<Vec<InvoiceRow>, RepoError>;
     async fn get_by_id(&self, id: i32) -> Result<InvoiceRow, RepoError>;
     async fn get_by_uuid(&self, alt_id: Uuid) -> Result<InvoiceRow, RepoError>;
+    async fn get_with_items(&self, id: Uuid) -> Result<Vec<InvoiceWithItemRow>, RepoError>;
     async fn find_by_user_id(&self, user_id: Uuid) -> Result<Vec<InvoiceRow>, RepoError>;
     async fn update(&self, invoice: UpdateInvoiceRequest) -> Result<InvoiceRow, RepoError>;
     async fn delete(&self, id: Uuid) -> Result<DeleteResults, RepoError>;
@@ -167,6 +186,25 @@ impl InvoiceRepository for InvoiceRepositoryImpl {
             alt_id
         )
             .fetch_one(&self.pool)
+            .await;
+        result.map_err(RepoError::from)
+    }
+
+    #[instrument]
+    async fn get_with_items(&self, id: Uuid) -> Result<Vec<InvoiceWithItemRow>, RepoError> {
+        let result = sqlx::query_as!(
+            InvoiceWithItemRow,
+            r#"
+            SELECT i.id, i.alt_id, i.user_id, i.total, i.paid, i.created_by, i.created_at, i.last_changed_by, i.last_update,
+            ii.item_id as item_alt_id, it.name as item_name, it.description as item_description, it.unit_price as item_unit_price
+            FROM invoices i
+            JOIN invoices_items ii ON i.alt_id = ii.invoice_id
+            JOIN items it ON ii.item_id = it.alt_id
+            WHERE i.alt_id = $1
+            "#,
+            id
+        )
+            .fetch_all(&self.pool)
             .await;
         result.map_err(RepoError::from)
     }
