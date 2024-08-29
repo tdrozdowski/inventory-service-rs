@@ -8,7 +8,6 @@ use chrono::{DateTime, Utc};
 use mockall::automock;
 use sqlx::FromRow;
 use std::fmt::Debug;
-use std::future::Future;
 use tracing::instrument;
 use uuid::Uuid;
 

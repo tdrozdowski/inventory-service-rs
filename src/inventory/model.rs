@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
-#[derive(Debug, Deserialize, IntoParams, Clone, Copy)]
+#[derive(Debug, Deserialize, IntoParams, Clone, Copy, PartialEq, Serialize, ToSchema)]
 pub struct Pagination {
     pub last_id: Option<i32>,
     pub page_size: i64,
@@ -160,5 +160,11 @@ pub struct Invoice {
     #[garde(skip)]
     pub audit_info: AuditInfo,
     #[garde(skip)]
-    pub items: Vec<String>,
+    pub items: Vec<Item>,
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize, ToSchema)]
+pub struct ServiceResults {
+    pub message: String,
+    pub success: bool,
 }
