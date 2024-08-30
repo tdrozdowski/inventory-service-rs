@@ -10,18 +10,19 @@ use async_trait::async_trait;
 use bigdecimal::ToPrimitive;
 use mockall::automock;
 use std::fmt::Debug;
+use std::sync::Arc;
+use tracing::instrument;
 use uuid::Uuid;
 
 #[async_trait]
 #[automock]
-pub trait InvoiceService: Debug {
+pub trait InvoiceService: Debug + Send + Sync + 'static {
     async fn list_all_invoices(
         &self,
         maybe_pagination: Option<Pagination>,
     ) -> Result<Vec<Invoice>, ServiceError>;
     async fn get_invoice(&self, id: Uuid, with_items: bool) -> Result<Invoice, ServiceError>;
     async fn get_invoices_for_user(&self, user_id: Uuid) -> Result<Vec<Invoice>, ServiceError>;
-    async fn get_invoices(&self) -> Result<Vec<Invoice>, ServiceError>;
     async fn create_invoice(
         &self,
         create_invoice_request: CreateInvoiceRequest,
@@ -45,17 +46,18 @@ pub trait InvoiceService: Debug {
 
 #[derive(Debug)]
 pub struct InvoiceServiceImpl {
-    invoice_repo: Box<dyn InvoiceRepository + Send + Sync>,
+    invoice_repo: Arc<dyn InvoiceRepository + Send + Sync>,
 }
 
 impl InvoiceServiceImpl {
-    pub async fn new(invoice_repo: Box<dyn InvoiceRepository + Send + Sync>) -> Self {
+    pub fn new(invoice_repo: Arc<dyn InvoiceRepository + Send + Sync>) -> Self {
         Self { invoice_repo }
     }
 }
 
 #[async_trait]
 impl InvoiceService for InvoiceServiceImpl {
+    #[instrument]
     async fn list_all_invoices(
         &self,
         maybe_pagination: Option<Pagination>,
@@ -65,6 +67,7 @@ impl InvoiceService for InvoiceServiceImpl {
             .map(|i| i.into_iter().map(Invoice::from).collect())
             .map_err(ServiceError::from)
     }
+    #[instrument]
     async fn get_invoice(&self, id: Uuid, with_items: bool) -> Result<Invoice, ServiceError> {
         if with_items {
             let results = self.invoice_repo.get_with_items(id).await;
@@ -75,20 +78,14 @@ impl InvoiceService for InvoiceServiceImpl {
         }
     }
 
+    #[instrument]
     async fn get_invoices_for_user(&self, user_id: Uuid) -> Result<Vec<Invoice>, ServiceError> {
         let results = self.invoice_repo.find_by_user_id(user_id).await;
         results
             .map(|i| i.into_iter().map(Invoice::from).collect())
             .map_err(ServiceError::from)
     }
-
-    async fn get_invoices(&self) -> Result<Vec<Invoice>, ServiceError> {
-        let results = self.invoice_repo.get_all_invoices(None).await;
-        results
-            .map(|i| i.into_iter().map(Invoice::from).collect())
-            .map_err(ServiceError::from)
-    }
-
+    #[instrument]
     async fn create_invoice(
         &self,
         create_invoice_request: CreateInvoiceRequest,
@@ -96,7 +93,7 @@ impl InvoiceService for InvoiceServiceImpl {
         let results = self.invoice_repo.create(create_invoice_request).await;
         results.map(Invoice::from).map_err(ServiceError::from)
     }
-
+    #[instrument]
     async fn update_invoice(
         &self,
         update_invoice_request: UpdateInvoiceRequest,
@@ -104,12 +101,12 @@ impl InvoiceService for InvoiceServiceImpl {
         let results = self.invoice_repo.update(update_invoice_request).await;
         results.map(Invoice::from).map_err(ServiceError::from)
     }
-
+    #[instrument]
     async fn delete_invoice(&self, id: Uuid) -> Result<DeleteResults, ServiceError> {
         let results = self.invoice_repo.delete(id).await;
         results.map_err(ServiceError::from)
     }
-
+    #[instrument]
     async fn add_item_to_invoice(
         &self,
         invoice_id: Uuid,
@@ -127,7 +124,7 @@ impl InvoiceService for InvoiceServiceImpl {
             })
             .map_err(ServiceError::from)
     }
-
+    #[instrument]
     async fn remove_item_from_invoice(
         &self,
         invoice_id: Uuid,
@@ -224,7 +221,7 @@ mod tests {
                 Box::pin(async move { Ok(vec![cloned_row]) })
             });
 
-        let service = InvoiceServiceImpl::new(Box::new(mock)).await;
+        let service = InvoiceServiceImpl::new(Arc::new(mock));
         let result = service.list_all_invoices(None).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().len(), 1);
@@ -246,7 +243,7 @@ mod tests {
                 Box::pin(async move { Ok(vec![cloned_row]) })
             });
 
-        let service = InvoiceServiceImpl::new(Box::new(mock)).await;
+        let service = InvoiceServiceImpl::new(Arc::new(mock));
         let result = service.list_all_invoices(Some(pagination)).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().len(), 1);
@@ -265,7 +262,7 @@ mod tests {
                 Box::pin(async move { Ok(cloned_row) })
             });
 
-        let service = InvoiceServiceImpl::new(Box::new(mock)).await;
+        let service = InvoiceServiceImpl::new(Arc::new(mock));
         let result = service.get_invoice(id, false).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().id, id.to_string());
@@ -298,7 +295,7 @@ mod tests {
                 Box::pin(async move { Ok(vec![cloned_row]) })
             });
 
-        let service = InvoiceServiceImpl::new(Box::new(mock)).await;
+        let service = InvoiceServiceImpl::new(Arc::new(mock));
         let result = service.get_invoice(id, true).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().id, id.to_string());
@@ -317,7 +314,7 @@ mod tests {
                 Box::pin(async move { Ok(cloned_row) })
             });
 
-        let service = InvoiceServiceImpl::new(Box::new(mock)).await;
+        let service = InvoiceServiceImpl::new(Arc::new(mock));
         let result = service.get_invoice(id, false).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().id, id.to_string());
@@ -336,7 +333,7 @@ mod tests {
                 Box::pin(async move { Ok(vec![cloned_row]) })
             });
 
-        let service = InvoiceServiceImpl::new(Box::new(mock)).await;
+        let service = InvoiceServiceImpl::new(Arc::new(mock));
         let result = service.get_invoices_for_user(user_id).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().len(), 1);
@@ -356,7 +353,7 @@ mod tests {
                 Box::pin(async move { Ok(cloned_row) })
             });
 
-        let service = InvoiceServiceImpl::new(Box::new(mock)).await;
+        let service = InvoiceServiceImpl::new(Arc::new(mock));
         let result = service
             .create_invoice(CreateInvoiceRequest {
                 user_id,
@@ -384,7 +381,7 @@ mod tests {
                 Box::pin(async move { Ok(cloned_row) })
             });
 
-        let service = InvoiceServiceImpl::new(Box::new(mock)).await;
+        let service = InvoiceServiceImpl::new(Arc::new(mock));
         let result = service
             .update_invoice(UpdateInvoiceRequest {
                 id,
@@ -414,7 +411,7 @@ mod tests {
                 })
             });
 
-        let service = InvoiceServiceImpl::new(Box::new(mock)).await;
+        let service = InvoiceServiceImpl::new(Arc::new(mock));
         let result = service.delete_invoice(id).await;
         assert!(result.is_ok());
     }
@@ -438,7 +435,7 @@ mod tests {
                 })
             });
 
-        let service = InvoiceServiceImpl::new(Box::new(mock)).await;
+        let service = InvoiceServiceImpl::new(Arc::new(mock));
         let result = service.add_item_to_invoice(invoice_id, item_id).await;
         assert!(result.is_ok());
     }
@@ -461,7 +458,7 @@ mod tests {
                 })
             });
 
-        let service = InvoiceServiceImpl::new(Box::new(mock)).await;
+        let service = InvoiceServiceImpl::new(Arc::new(mock));
         let result = service.remove_item_from_invoice(invoice_id, item_id).await;
         assert!(result.is_ok());
     }

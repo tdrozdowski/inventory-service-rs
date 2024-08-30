@@ -1,3 +1,4 @@
+use crate::inventory::services::invoice::MockInvoiceService;
 use crate::inventory::services::item::MockItemService;
 use crate::inventory::services::person::MockPersonService;
 use crate::jwt::{AuthRequest, Claims};
@@ -49,12 +50,15 @@ pub fn string_to_uuid(s: &str) -> Uuid {
 pub fn test_app_context(
     mock_person_service: MockPersonService,
     mock_item_service: MockItemService,
+    mock_invoice_service: MockInvoiceService,
 ) -> AppContext {
     let person_service = Arc::new(mock_person_service);
     let item_service = Arc::new(mock_item_service);
+    let invoice_service = Arc::new(mock_invoice_service);
     AppContext {
         person_service,
         item_service,
+        invoice_service,
     }
 }
 

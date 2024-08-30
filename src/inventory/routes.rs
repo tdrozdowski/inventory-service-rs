@@ -79,6 +79,7 @@ mod tests {
         CreateItemRequest, CreatePersonRequest, DeleteResults, Item, Person, UpdateItemRequest,
     };
     use crate::inventory::routes::{api_routes, item_routes, person_routes};
+    use crate::inventory::services::invoice::MockInvoiceService;
     use crate::inventory::services::item::MockItemService;
     use crate::inventory::services::person::MockPersonService;
     use crate::test_helpers::{mock_token, test_app_context};
@@ -87,43 +88,74 @@ mod tests {
     use axum::{http, Router};
     use tower::ServiceExt;
     use uuid::Uuid;
+
     async fn app(
         mock_person_service: MockPersonService,
         mock_item_service: MockItemService,
+        mock_invoice_service: MockInvoiceService,
     ) -> Router {
         Router::new()
             .nest("/persons", person_routes())
             .nest("/items", item_routes())
-            .with_state(test_app_context(mock_person_service, mock_item_service))
+            .with_state(test_app_context(
+                mock_person_service,
+                mock_item_service,
+                mock_invoice_service,
+            ))
     }
 
     async fn app_with_live_mock_person_service(mock_person_service: MockPersonService) -> Router {
         let mock_item_service = MockItemService::new();
-        app(mock_person_service, mock_item_service).await
+        let mock_invoice_service = MockInvoiceService::new();
+        app(mock_person_service, mock_item_service, mock_invoice_service).await
     }
 
     async fn app_with_live_mock_item_service(mock_item_service: MockItemService) -> Router {
         let mock_person_service = MockPersonService::new();
-        app(mock_person_service, mock_item_service).await
+        let mock_invoice_service = MockInvoiceService::new();
+        app(mock_person_service, mock_item_service, mock_invoice_service).await
+    }
+
+    async fn app_with_live_mock_invoice_service(
+        mock_invoice_service: MockInvoiceService,
+    ) -> Router {
+        let mock_person_service = MockPersonService::new();
+        let mock_item_service = MockItemService::new();
+        app(mock_person_service, mock_item_service, mock_invoice_service).await
     }
 
     async fn app_v1(
         mock_person_service: MockPersonService,
         mock_item_service: MockItemService,
+        mock_invoice_service: MockInvoiceService,
     ) -> Router {
-        api_routes().with_state(test_app_context(mock_person_service, mock_item_service))
+        api_routes().with_state(test_app_context(
+            mock_person_service,
+            mock_item_service,
+            mock_invoice_service,
+        ))
     }
 
     async fn app_v1_with_live_mock_person_service(
         mock_person_service: MockPersonService,
     ) -> Router {
         let mock_item_service = MockItemService::new();
-        app_v1(mock_person_service, mock_item_service).await
+        let mock_invoice_service = MockInvoiceService::new();
+        app_v1(mock_person_service, mock_item_service, mock_invoice_service).await
     }
 
     async fn app_v1_with_live_mock_item_service(mock_item_service: MockItemService) -> Router {
         let mock_person_service = MockPersonService::new();
-        app_v1(mock_person_service, mock_item_service).await
+        let mock_invoice_service = MockInvoiceService::new();
+        app_v1(mock_person_service, mock_item_service, mock_invoice_service).await
+    }
+
+    async fn app_v1_with_live_mock_invoice_service(
+        mock_invoice_service: MockInvoiceService,
+    ) -> Router {
+        let mock_person_service = MockPersonService::new();
+        let mock_item_service = MockItemService::new();
+        app_v1(mock_person_service, mock_item_service, mock_invoice_service).await
     }
 
     #[tokio::test]

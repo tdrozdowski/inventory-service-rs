@@ -145,6 +145,7 @@ pub async fn get_person_by_id(
 #[cfg(test)]
 mod tests {
     use crate::inventory::model::Pagination;
+    use crate::inventory::services::invoice::MockInvoiceService;
     use crate::inventory::services::item::MockItemService;
     use crate::inventory::services::person::MockPersonService;
     use crate::test_helpers::mock_claims;
@@ -170,7 +171,11 @@ mod tests {
             let cloned_person = expected_person.clone();
             Box::pin(async move { Ok(cloned_person) })
         });
-        let app_context = test_app_context(mock_person_service, MockItemService::new());
+        let app_context = test_app_context(
+            mock_person_service,
+            MockItemService::new(),
+            MockInvoiceService::new(),
+        );
         let result =
             super::get_person_by_id(mock_claims(), Path(Uuid::new_v4()), State(app_context)).await;
         assert!(result.is_ok());
@@ -208,7 +213,11 @@ mod tests {
                 let cloned_persons = expected_persons.clone();
                 Box::pin(async move { Ok(cloned_persons) })
             });
-        let app_context = test_app_context(mock_person_service, MockItemService::new());
+        let app_context = test_app_context(
+            mock_person_service,
+            MockItemService::new(),
+            MockInvoiceService::new(),
+        );
         let maybe_pagination = Some(Query(Pagination::default()));
         let result = super::get_persons(mock_claims(), maybe_pagination, State(app_context)).await;
         assert!(result.is_ok());
@@ -242,7 +251,11 @@ mod tests {
                 let cloned_person = expected_person.clone();
                 Box::pin(async move { Ok(cloned_person) })
             });
-        let app_context = test_app_context(mock_person_service, MockItemService::new());
+        let app_context = test_app_context(
+            mock_person_service,
+            MockItemService::new(),
+            MockInvoiceService::new(),
+        );
         let result = super::create_person(mock_claims(), State(app_context), Json(person)).await;
         assert!(result.is_ok());
         let person = result.unwrap().0;
@@ -258,7 +271,11 @@ mod tests {
         mock_person_service
             .expect_delete_person()
             .returning(move |_| Box::pin(async move { Ok(()) }));
-        let app_context = test_app_context(mock_person_service, MockItemService::new());
+        let app_context = test_app_context(
+            mock_person_service,
+            MockItemService::new(),
+            MockInvoiceService::new(),
+        );
         let result =
             super::delete_person(mock_claims(), Path(Uuid::new_v4()), State(app_context)).await;
         assert!(result.is_ok());
@@ -274,7 +291,11 @@ mod tests {
         mock_person_service.expect_get_person().returning(move |_| {
             Box::pin(async move { Err(ServiceError::NotFound("Mock NotFound".to_string())) })
         });
-        let app_context = test_app_context(mock_person_service, MockItemService::new());
+        let app_context = test_app_context(
+            mock_person_service,
+            MockItemService::new(),
+            MockInvoiceService::new(),
+        );
         let result =
             super::get_person_by_id(mock_claims(), Path(Uuid::new_v4()), State(app_context)).await;
         assert!(result.is_err());

@@ -168,3 +168,14 @@ pub struct ServiceResults {
     pub message: String,
     pub success: bool,
 }
+
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize, ToSchema)]
+pub struct WithItemsQuery {
+    pub with_items: bool,
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize, ToSchema)]
+pub struct InvoiceItemRequest {
+    pub invoice_id: Uuid,
+    pub item_id: Uuid,
+}
