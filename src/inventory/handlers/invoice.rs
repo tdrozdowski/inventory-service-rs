@@ -290,3 +290,574 @@ pub async fn delete_invoice(
         .await
         .map(Json)
 }
+
+#[axum_macros::debug_handler]
+#[instrument]
+#[utoipa::path(
+    get,
+    path = "/users/{user_id}",
+    summary = "List all invoices for user",
+    description = "List all invoices for user",
+    params(
+        ("user_id", Path, description = "User id (uuid)"),
+        ("Authorization", Header, description = "Bearer token"),
+    ),
+    responses(
+        (status = 200, description = "List of invoices", body = [Invoice]),
+        (status = 401, description = "Unauthorized", body = ApiError),
+        (status = 403, description = "Forbidden", body = ApiError),
+        (status = 404, description = "Not Found", body = ApiError),
+        (status = 500, description = "Internal Server Error", body = ApiError),
+    )
+)]
+pub async fn get_invoices_by_user(
+    claims: Claims,
+    Path(user_id): Path<Uuid>,
+    State(app_context): State<AppContext>,
+) -> Result<Json<Vec<Invoice>>, ServiceError> {
+    app_context
+        .invoice_service
+        .get_invoices_for_user(user_id)
+        .await
+        .map(Json)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::inventory::handlers::invoice::{
+        add_invoice_items, get_invoice_by_id, get_invoices, get_invoices_by_user, update_invoice,
+    };
+    use crate::inventory::model::{
+        CreateInvoiceRequest, DeleteResults, Invoice, ServiceResults, WithItemsQuery,
+    };
+    use crate::inventory::services::invoice::MockInvoiceService;
+    use crate::inventory::services::item::MockItemService;
+    use crate::inventory::services::person::MockPersonService;
+    use crate::inventory::services::ServiceError::NotFound;
+    use crate::test_helpers::{mock_claims, test_app_context};
+    use axum::extract::{Path, Query, State};
+    use garde::rules::AsStr;
+    use uuid::Uuid;
+
+    fn create_invoice(item_id: Uuid) -> Invoice {
+        Invoice {
+            seq: 1,
+            id: item_id.to_string(),
+            user_id: Uuid::new_v4().to_string(),
+            total: 0.0,
+            items: vec![],
+            audit_info: Default::default(),
+            paid: false,
+        }
+    }
+
+    fn create_invoice_with_items(item_id: Uuid) -> Invoice {
+        Invoice {
+            seq: 1,
+            id: item_id.to_string(),
+            user_id: Uuid::new_v4().to_string(),
+            total: 0.0,
+            items: vec![Default::default()],
+            audit_info: Default::default(),
+            paid: false,
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_invoices() {
+        let expected_invoice = create_invoice(Uuid::new_v4());
+        let cloned_invoice = expected_invoice.clone();
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_list_all_invoices()
+            .returning(move |_| {
+                let cloned_invoice = cloned_invoice.clone();
+                Box::pin(async move { Ok(vec![cloned_invoice]) })
+            });
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            MockItemService::new(),
+            mock_invoice_service,
+        );
+        let claims = mock_claims();
+        let response = get_invoices(claims, None, State(app_context)).await;
+        assert!(response.is_ok());
+        let response = response.unwrap();
+        assert_eq!(response.0.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_get_invoice_by_id() {
+        let expected_invoice = create_invoice(Uuid::new_v4());
+        let cloned_invoice = expected_invoice.clone();
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_get_invoice()
+            .returning(move |_, _| {
+                let cloned_invoice = cloned_invoice.clone();
+                Box::pin(async move { Ok(cloned_invoice) })
+            });
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            MockItemService::new(),
+            mock_invoice_service,
+        );
+        let claims = mock_claims();
+        let response =
+            get_invoice_by_id(claims, Path(Uuid::new_v4()), None, State(app_context)).await;
+        assert!(response.is_ok());
+        let response = response.unwrap();
+        assert_eq!(response.0.id, expected_invoice.id);
+        assert_eq!(response.0.items.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_get_invoice_by_id_with_items() {
+        let expected_invoice = create_invoice_with_items(Uuid::new_v4());
+        let cloned_invoice = expected_invoice.clone();
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_get_invoice()
+            .returning(move |_, _| {
+                let cloned_invoice = cloned_invoice.clone();
+                Box::pin(async move { Ok(cloned_invoice) })
+            });
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            MockItemService::new(),
+            mock_invoice_service,
+        );
+        let claims = mock_claims();
+        let item_query = WithItemsQuery { with_items: true };
+        let response = get_invoice_by_id(
+            claims,
+            Path(Uuid::new_v4()),
+            Some(Query(item_query)),
+            State(app_context),
+        )
+        .await;
+        assert!(response.is_ok());
+        let response = response.unwrap();
+        assert_eq!(response.0.id, expected_invoice.id);
+        assert_eq!(response.0.items.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_get_invoice_by_id_with_items_false() {
+        let expected_invoice = create_invoice(Uuid::new_v4());
+        let cloned_invoice = expected_invoice.clone();
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_get_invoice()
+            .returning(move |_, _| {
+                let cloned_invoice = cloned_invoice.clone();
+                Box::pin(async move { Ok(cloned_invoice) })
+            });
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            MockItemService::new(),
+            mock_invoice_service,
+        );
+        let claims = mock_claims();
+        let item_query = WithItemsQuery { with_items: false };
+        let response = get_invoice_by_id(
+            claims,
+            Path(Uuid::new_v4()),
+            Some(Query(item_query)),
+            State(app_context),
+        )
+        .await;
+        assert!(response.is_ok());
+        let response = response.unwrap();
+        assert_eq!(response.0.id, expected_invoice.id);
+        assert_eq!(response.0.items.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_create_invoice() {
+        let expected_invoice = create_invoice(Uuid::new_v4());
+        let cloned_invoice = expected_invoice.clone();
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_create_invoice()
+            .returning(move |_| {
+                let cloned_invoice = cloned_invoice.clone();
+                Box::pin(async move { Ok(cloned_invoice) })
+            });
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            MockItemService::new(),
+            mock_invoice_service,
+        );
+        let claims = mock_claims();
+        let create_request = CreateInvoiceRequest {
+            user_id: Uuid::new_v4(),
+            total: 0.0,
+            created_by: "unit_test".to_string(),
+            items: vec![],
+            paid: false,
+        };
+        let response = crate::inventory::handlers::invoice::create_invoice(
+            claims,
+            State(app_context),
+            axum::Json(create_request),
+        )
+        .await;
+        assert!(response.is_ok());
+        let response = response.unwrap();
+        assert_eq!(response.0.id, expected_invoice.id);
+    }
+
+    #[tokio::test]
+    async fn test_update_invoice() {
+        let expected_invoice = create_invoice(Uuid::new_v4());
+        let cloned_invoice = expected_invoice.clone();
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_update_invoice()
+            .returning(move |_| {
+                let cloned_invoice = cloned_invoice.clone();
+                Box::pin(async move { Ok(cloned_invoice) })
+            });
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            MockItemService::new(),
+            mock_invoice_service,
+        );
+        let claims = mock_claims();
+        let update_request = crate::inventory::model::UpdateInvoiceRequest {
+            id: Uuid::parse_str(expected_invoice.id.as_str()).unwrap(),
+            total: 0.0,
+            changed_by: "unit_test".to_string(),
+            paid: false,
+        };
+        let response = update_invoice(
+            claims,
+            Path(expected_invoice.id.clone()),
+            State(app_context),
+            axum::Json(update_request),
+        )
+        .await;
+        assert!(response.is_ok());
+        let response = response.unwrap();
+        assert_eq!(response.0.id, expected_invoice.id);
+    }
+
+    #[tokio::test]
+    async fn test_add_invoice_items() {
+        let expected_results = ServiceResults {
+            success: true,
+            message: "Items added".to_string(),
+        };
+        let cloned_results = expected_results.clone();
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_add_item_to_invoice()
+            .returning(move |_, _| {
+                let cloned_results = cloned_results.clone();
+                Box::pin(async move { Ok(cloned_results) })
+            });
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            MockItemService::new(),
+            mock_invoice_service,
+        );
+        let claims = mock_claims();
+        let item_request = crate::inventory::model::InvoiceItemRequest {
+            invoice_id: Uuid::new_v4(),
+            item_id: Uuid::new_v4(),
+        };
+        let response = add_invoice_items(
+            claims,
+            Path(item_request.invoice_id.to_string()),
+            State(app_context),
+            axum::Json(item_request),
+        )
+        .await;
+        assert!(response.is_ok());
+        let response = response.unwrap();
+        assert!(response.0.success);
+    }
+
+    #[tokio::test]
+    async fn test_remove_invoice_item() {
+        let invoice_id = Uuid::new_v4();
+        let cloned_invoice_id = invoice_id.clone();
+        let expected_results = DeleteResults {
+            id: invoice_id.to_string(),
+            deleted: true,
+        };
+        let cloned_results = expected_results.clone();
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_remove_item_from_invoice()
+            .returning(move |_, _| {
+                let cloned_results = cloned_results.clone();
+                Box::pin(async move { Ok(cloned_results) })
+            });
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            MockItemService::new(),
+            mock_invoice_service,
+        );
+        let claims = mock_claims();
+        let item_request = crate::inventory::model::InvoiceItemRequest {
+            invoice_id: cloned_invoice_id,
+            item_id: Uuid::new_v4(),
+        };
+        let response = crate::inventory::handlers::invoice::remove_invoice_item(
+            claims,
+            Path(item_request),
+            State(app_context),
+        )
+        .await;
+        assert!(response.is_ok());
+        let response = response.unwrap();
+        assert!(response.0.deleted);
+    }
+
+    #[tokio::test]
+    async fn test_delete_invoice() {
+        let invoice_id = Uuid::new_v4();
+        let cloned_invoice_id = invoice_id.clone();
+        let expected_results = DeleteResults {
+            id: invoice_id.to_string(),
+            deleted: true,
+        };
+        let cloned_results = expected_results.clone();
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_delete_invoice()
+            .returning(move |_| {
+                let cloned_results = cloned_results.clone();
+                Box::pin(async move { Ok(cloned_results) })
+            });
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            MockItemService::new(),
+            mock_invoice_service,
+        );
+        let claims = mock_claims();
+        let response = crate::inventory::handlers::invoice::delete_invoice(
+            claims,
+            Path(invoice_id.to_string()),
+            State(app_context),
+        )
+        .await;
+        assert!(response.is_ok());
+        let response = response.unwrap();
+        assert!(response.0.deleted);
+    }
+
+    #[tokio::test]
+    async fn test_add_item_to_invoice_mismatch_invoice_id() {
+        let invoice_id = Uuid::new_v4();
+        let item_id = Uuid::new_v4();
+        let item_request = crate::inventory::model::InvoiceItemRequest {
+            invoice_id,
+            item_id,
+        };
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            MockItemService::new(),
+            MockInvoiceService::new(),
+        );
+        let claims = mock_claims();
+        let response = crate::inventory::handlers::invoice::add_invoice_items(
+            claims,
+            Path(Uuid::new_v4().to_string()),
+            State(app_context),
+            axum::Json(item_request),
+        )
+        .await;
+        assert!(response.is_err());
+        let response = response.unwrap_err();
+        assert!(matches!(
+            response,
+            crate::inventory::services::ServiceError::InputValidationError(_)
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_update_invoice_mismatch_invoice_id() {
+        let invoice_id = Uuid::new_v4();
+        let update_request = crate::inventory::model::UpdateInvoiceRequest {
+            id: Uuid::new_v4(),
+            total: 0.0,
+            changed_by: "unit_test".to_string(),
+            paid: false,
+        };
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            MockItemService::new(),
+            MockInvoiceService::new(),
+        );
+        let claims = mock_claims();
+        let response = crate::inventory::handlers::invoice::update_invoice(
+            claims,
+            Path(Uuid::new_v4().to_string()),
+            State(app_context),
+            axum::Json(update_request),
+        )
+        .await;
+        assert!(response.is_err());
+        let response = response.unwrap_err();
+        assert!(matches!(
+            response,
+            crate::inventory::services::ServiceError::InputValidationError(_)
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_get_invoice_by_id_not_found() {
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_get_invoice()
+            .returning(move |_, _| Box::pin(async move { Err(NotFound("".to_string())) }));
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            MockItemService::new(),
+            mock_invoice_service,
+        );
+        let claims = mock_claims();
+        let response =
+            get_invoice_by_id(claims, Path(Uuid::new_v4()), None, State(app_context)).await;
+        assert!(response.is_err());
+        let response = response.unwrap_err();
+        match response {
+            NotFound(_) => assert!(true),
+            _ => assert!(false),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_remove_invoice_item_not_found() {
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_remove_item_from_invoice()
+            .returning(move |_, _| Box::pin(async move { Err(NotFound("".to_string())) }));
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            MockItemService::new(),
+            mock_invoice_service,
+        );
+        let claims = mock_claims();
+        let item_request = crate::inventory::model::InvoiceItemRequest {
+            invoice_id: Uuid::new_v4(),
+            item_id: Uuid::new_v4(),
+        };
+        let response = crate::inventory::handlers::invoice::remove_invoice_item(
+            claims,
+            Path(item_request),
+            State(app_context),
+        )
+        .await;
+        assert!(response.is_err());
+        let response = response.unwrap_err();
+        match response {
+            NotFound(_) => assert!(true),
+            _ => assert!(false),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_delete_invoice_not_found() {
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_delete_invoice()
+            .returning(move |_| Box::pin(async move { Err(NotFound("".to_string())) }));
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            MockItemService::new(),
+            mock_invoice_service,
+        );
+        let claims = mock_claims();
+        let response = crate::inventory::handlers::invoice::delete_invoice(
+            claims,
+            Path(Uuid::new_v4().to_string()),
+            State(app_context),
+        )
+        .await;
+        assert!(response.is_err());
+        let response = response.unwrap_err();
+        match response {
+            NotFound(_) => assert!(true),
+            _ => assert!(false),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_add_invoice_items_not_found() {
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_add_item_to_invoice()
+            .returning(move |_, _| Box::pin(async move { Err(NotFound("".to_string())) }));
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            MockItemService::new(),
+            mock_invoice_service,
+        );
+        let claims = mock_claims();
+        let item_request = crate::inventory::model::InvoiceItemRequest {
+            invoice_id: Uuid::new_v4(),
+            item_id: Uuid::new_v4(),
+        };
+        let response = crate::inventory::handlers::invoice::add_invoice_items(
+            claims,
+            Path(item_request.invoice_id.to_string()),
+            State(app_context),
+            axum::Json(item_request),
+        )
+        .await;
+        assert!(response.is_err());
+        let response = response.unwrap_err();
+        match response {
+            NotFound(_) => assert!(true),
+            _ => assert!(false),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_invoices_by_user() {
+        let expected_invoice = create_invoice(Uuid::new_v4());
+        let cloned_invoice = expected_invoice.clone();
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_get_invoices_for_user()
+            .returning(move |_| {
+                let cloned_invoice = cloned_invoice.clone();
+                Box::pin(async move { Ok(vec![cloned_invoice]) })
+            });
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            MockItemService::new(),
+            mock_invoice_service,
+        );
+        let claims = mock_claims();
+        let response = get_invoices_by_user(claims, Path(Uuid::new_v4()), State(app_context)).await;
+        assert!(response.is_ok());
+        let response = response.unwrap();
+        assert_eq!(response.0.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_get_invoices_by_user_not_found() {
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_get_invoices_for_user()
+            .returning(move |_| Box::pin(async move { Err(NotFound("".to_string())) }));
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            MockItemService::new(),
+            mock_invoice_service,
+        );
+        let claims = mock_claims();
+        let response = get_invoices_by_user(claims, Path(Uuid::new_v4()), State(app_context)).await;
+        assert!(response.is_err());
+        let response = response.unwrap_err();
+        match response {
+            NotFound(_) => assert!(true),
+            _ => assert!(false),
+        }
+    }
+}
