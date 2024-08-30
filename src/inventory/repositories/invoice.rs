@@ -231,11 +231,12 @@ impl InvoiceRepository for InvoiceRepositoryImpl {
             InvoiceRow,
             r#"
             UPDATE invoices
-            SET total = $1, last_changed_by = $2, last_update = now()
-            WHERE alt_id = $3
+            SET total = $1, paid = $2, last_changed_by = $3, last_update = now()
+            WHERE alt_id = $4
             RETURNING id, alt_id, user_id, total, paid, created_by, created_at, last_changed_by, last_update
             "#,
             total,
+            invoice.paid,
             invoice.changed_by,
             invoice.id
         )
@@ -253,8 +254,8 @@ impl InvoiceRepository for InvoiceRepositoryImpl {
             "#,
             id
         )
-        .execute(&self.pool)
-        .await;
+            .execute(&self.pool)
+            .await;
 
         match result {
             Ok(pg_result) => {
@@ -285,8 +286,8 @@ impl InvoiceRepository for InvoiceRepositoryImpl {
             invoice_item.invoice_id,
             invoice_item.item_id
         )
-        .fetch_one(&self.pool)
-        .await;
+            .fetch_one(&self.pool)
+            .await;
         row.map_err(RepoError::from)
     }
 
@@ -300,8 +301,8 @@ impl InvoiceRepository for InvoiceRepositoryImpl {
             invoice_item.invoice_id,
             invoice_item.item_id
         )
-        .execute(&self.pool)
-        .await;
+            .execute(&self.pool)
+            .await;
         result
             .map(DeleteResults::from)
             .map(|mut r| {
@@ -322,8 +323,8 @@ impl InvoiceRepository for InvoiceRepositoryImpl {
             "#,
             invoice_id
         )
-        .fetch_all(&self.pool)
-        .await;
+            .fetch_all(&self.pool)
+            .await;
         result.map_err(RepoError::from)
     }
 }

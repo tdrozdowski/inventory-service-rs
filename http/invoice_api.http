@@ -1,0 +1,103 @@
+POST http://localhost:3000/api/v1/authorize
+Content-Type: application/json
+
+{
+  "client_id": "foo",
+  "client_secret": "bar"
+}
+
+> {%
+    client.global.set("access_token", response.body.token);
+%}
+
+###
+OPTIONS http://localhost:3000/api/v1/invoices
+
+###
+GET http://localhost:3000/api/v1/invoices?page_size=1
+Authorization: Bearer {{access_token}}
+
+###
+
+GET http://localhost:3000/api/v1/invoices?last_id=30&page_size=5
+Authorization: Bearer {{access_token}}
+
+###
+
+GET http://localhost:3000/api/v1/invoices/6f4bdd88-d12e-421a-bac7-92ed2d9035ba
+Authorization: Bearer {{access_token}}
+
+###
+
+POST http://localhost:3000/api/v1/invoices
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "user_id": "2b1b425e-dee2-4227-8d94-f470a0ce0cd0",
+  "total": 100.00,
+  "created_by": "http_client_test",
+  "items": [],
+  "paid": false
+}
+
+> {%
+    client.global.set("new_invoice_id", response.body.id);
+%}
+
+###
+
+GET http://localhost:3000/api/v1/invoices/{{new_invoice_id}}
+Authorization: Bearer {{access_token}}
+
+###
+
+PUT http://localhost:3000/api/v1/invoices/{{new_invoice_id}}
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "id": "{{new_invoice_id}}",
+  "total": 120.05,
+  "paid": true,
+  "changed_by": "http_client_test"
+}
+
+###
+GET http://localhost:3000/api/v1/items?page_size=3
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.global.set("item_id", response.body[2].id);
+%}
+
+###
+POST http://localhost:3000/api/v1/invoices/{{new_invoice_id}}/items
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "invoice_id": "{{new_invoice_id}}",
+  "item_id": "{{item_id}}"
+
+}
+
+###
+GET http://localhost:3000/api/v1/invoices/{{new_invoice_id}}?with_items=true
+Authorization: Bearer {{access_token}}
+
+###
+DELETE http://localhost:3000/api/v1/invoices/{{new_invoice_id}}/items/{{item_id}}
+Authorization: Bearer {{access_token}}
+
+###
+
+DELETE http://localhost:3000/api/v1/invoices/{{new_invoice_id}}
+Authorization: Bearer {{access_token}}
+
+###
+
+GET http://localhost:3000/api/v1/invoices/users/2b1b425e-dee2-4227-8d94-f470a0ce0cd0
+Authorization: Bearer {{access_token}}
+
+###
