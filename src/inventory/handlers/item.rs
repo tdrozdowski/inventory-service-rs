@@ -184,6 +184,7 @@ pub async fn delete_item(
 #[cfg(test)]
 mod tests {
     use crate::inventory::model::{Item, Pagination};
+    use crate::inventory::services::invoice::MockInvoiceService;
     use crate::inventory::services::item::MockItemService;
     use crate::inventory::services::person::MockPersonService;
     use crate::jwt::Claims;
@@ -208,7 +209,11 @@ mod tests {
                 let cloned_item = cloned_item.clone();
                 Box::pin(async move { Ok(vec![cloned_item]) })
             });
-        let app_context = test_app_context(MockPersonService::new(), mock_item_service);
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            mock_item_service,
+            MockInvoiceService::new(),
+        );
         let no_pagination: Option<Query<Pagination>> = None;
         let result = super::get_items(Claims::default(), no_pagination, State(app_context)).await;
         assert!(result.is_ok());
@@ -235,7 +240,11 @@ mod tests {
                 let cloned_item = cloned_item.clone();
                 Box::pin(async move { Ok(cloned_item) })
             });
-        let app_context = test_app_context(MockPersonService::new(), mock_item_service);
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            mock_item_service,
+            MockInvoiceService::new(),
+        );
         let result = super::get_item_by_id(
             Claims::default(),
             Path(first_item_uuid()),
@@ -263,7 +272,11 @@ mod tests {
             let cloned_item = cloned_item.clone();
             Box::pin(async move { Ok(cloned_item) })
         });
-        let app_context = test_app_context(MockPersonService::new(), mock_item_service);
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            mock_item_service,
+            MockInvoiceService::new(),
+        );
         let result = super::create_item(
             Claims::default(),
             State(app_context),
@@ -296,7 +309,11 @@ mod tests {
             let cloned_item = cloned_item.clone();
             Box::pin(async move { Ok(cloned_item) })
         });
-        let app_context = test_app_context(MockPersonService::new(), mock_item_service);
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            mock_item_service,
+            MockInvoiceService::new(),
+        );
         let result = super::update_item(
             Claims::default(),
             Path(FIRST_ITEM_UUID.to_string()),
@@ -327,7 +344,11 @@ mod tests {
             let cloned_result = cloned_result.clone();
             Box::pin(async move { Ok(cloned_result) })
         });
-        let app_context = test_app_context(MockPersonService::new(), mock_item_service);
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            mock_item_service,
+            MockInvoiceService::new(),
+        );
         let result = super::delete_item(
             Claims::default(),
             Path(first_item_uuid()),
@@ -357,7 +378,11 @@ mod tests {
                 let cloned_item = cloned_item.clone();
                 Box::pin(async move { Ok(vec![cloned_item]) })
             });
-        let app_context = test_app_context(MockPersonService::new(), mock_item_service);
+        let app_context = test_app_context(
+            MockPersonService::new(),
+            mock_item_service,
+            MockInvoiceService::new(),
+        );
         let result = super::get_items(
             Claims::default(),
             Some(axum::extract::Query(super::Pagination {

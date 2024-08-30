@@ -1,4 +1,4 @@
-use crate::inventory::handlers::{item, person};
+use crate::inventory::handlers::{invoice, item, person};
 use crate::AppContext;
 use axum::http::{HeaderValue, Method};
 use axum::Router;
@@ -9,7 +9,8 @@ use utoipa::OpenApi;
 #[openapi(
     nest(
         (path = "/v1/api/persons", api=person::PersonApi),
-        (path = "/v1/api/items", api=item::ItemApi)
+        (path = "/v1/api/items", api=item::ItemApi),
+        (path = "/v1/api/invoices", api=invoice::InvoiceApi)
     )
 )]
 pub struct ApiDoc;
@@ -59,10 +60,47 @@ pub fn item_routes() -> Router<AppContext> {
         )
 }
 
+fn invoice_routes() -> Router<AppContext> {
+    Router::new()
+        .route(
+            "/",
+            axum::routing::get(invoice::get_invoices).post(invoice::create_invoice),
+        )
+        .layer(
+            CorsLayer::new()
+                .allow_origin("*".parse::<HeaderValue>().unwrap())
+                .allow_methods([Method::GET, Method::POST]),
+        )
+        .route(
+            "/:id",
+            axum::routing::get(invoice::get_invoice_by_id)
+                .delete(invoice::delete_invoice)
+                .put(invoice::update_invoice),
+        )
+        .route(
+            "/:id/items",
+            axum::routing::post(invoice::add_invoice_items),
+        )
+        .route(
+            "/:invoice_id/items/:item_id",
+            axum::routing::delete(invoice::remove_invoice_item),
+        )
+        .route(
+            "/users/:id",
+            axum::routing::get(invoice::get_invoices_by_user),
+        )
+        .layer(
+            CorsLayer::new()
+                .allow_origin("*".parse::<HeaderValue>().unwrap())
+                .allow_methods([Method::GET, Method::DELETE]),
+        )
+}
+
 fn all_routes() -> Router<AppContext> {
     Router::new()
         .nest("/persons", person_routes())
         .nest("/items", item_routes())
+        .nest("/invoices", invoice_routes())
 }
 
 fn v1_routes() -> Router<AppContext> {
@@ -75,10 +113,9 @@ pub(crate) fn api_routes() -> Router<AppContext> {
 
 #[cfg(test)]
 mod tests {
-    use crate::inventory::model::{
-        CreateItemRequest, CreatePersonRequest, DeleteResults, Item, Person, UpdateItemRequest,
-    };
+    use crate::inventory::model::{CreateInvoiceRequest, CreateItemRequest, CreatePersonRequest, DeleteResults, InvoiceItemRequest, Item, Person, UpdateInvoiceRequest, UpdateItemRequest};
     use crate::inventory::routes::{api_routes, item_routes, person_routes};
+    use crate::inventory::services::invoice::MockInvoiceService;
     use crate::inventory::services::item::MockItemService;
     use crate::inventory::services::person::MockPersonService;
     use crate::test_helpers::{mock_token, test_app_context};
@@ -87,43 +124,74 @@ mod tests {
     use axum::{http, Router};
     use tower::ServiceExt;
     use uuid::Uuid;
+
     async fn app(
         mock_person_service: MockPersonService,
         mock_item_service: MockItemService,
+        mock_invoice_service: MockInvoiceService,
     ) -> Router {
         Router::new()
             .nest("/persons", person_routes())
             .nest("/items", item_routes())
-            .with_state(test_app_context(mock_person_service, mock_item_service))
+            .with_state(test_app_context(
+                mock_person_service,
+                mock_item_service,
+                mock_invoice_service,
+            ))
     }
 
     async fn app_with_live_mock_person_service(mock_person_service: MockPersonService) -> Router {
         let mock_item_service = MockItemService::new();
-        app(mock_person_service, mock_item_service).await
+        let mock_invoice_service = MockInvoiceService::new();
+        app(mock_person_service, mock_item_service, mock_invoice_service).await
     }
 
     async fn app_with_live_mock_item_service(mock_item_service: MockItemService) -> Router {
         let mock_person_service = MockPersonService::new();
-        app(mock_person_service, mock_item_service).await
+        let mock_invoice_service = MockInvoiceService::new();
+        app(mock_person_service, mock_item_service, mock_invoice_service).await
+    }
+
+    async fn app_with_live_mock_invoice_service(
+        mock_invoice_service: MockInvoiceService,
+    ) -> Router {
+        let mock_person_service = MockPersonService::new();
+        let mock_item_service = MockItemService::new();
+        app(mock_person_service, mock_item_service, mock_invoice_service).await
     }
 
     async fn app_v1(
         mock_person_service: MockPersonService,
         mock_item_service: MockItemService,
+        mock_invoice_service: MockInvoiceService,
     ) -> Router {
-        api_routes().with_state(test_app_context(mock_person_service, mock_item_service))
+        api_routes().with_state(test_app_context(
+            mock_person_service,
+            mock_item_service,
+            mock_invoice_service,
+        ))
     }
 
     async fn app_v1_with_live_mock_person_service(
         mock_person_service: MockPersonService,
     ) -> Router {
         let mock_item_service = MockItemService::new();
-        app_v1(mock_person_service, mock_item_service).await
+        let mock_invoice_service = MockInvoiceService::new();
+        app_v1(mock_person_service, mock_item_service, mock_invoice_service).await
     }
 
     async fn app_v1_with_live_mock_item_service(mock_item_service: MockItemService) -> Router {
         let mock_person_service = MockPersonService::new();
-        app_v1(mock_person_service, mock_item_service).await
+        let mock_invoice_service = MockInvoiceService::new();
+        app_v1(mock_person_service, mock_item_service, mock_invoice_service).await
+    }
+
+    async fn app_v1_with_live_mock_invoice_service(
+        mock_invoice_service: MockInvoiceService,
+    ) -> Router {
+        let mock_person_service = MockPersonService::new();
+        let mock_item_service = MockItemService::new();
+        app_v1(mock_person_service, mock_item_service, mock_invoice_service).await
     }
 
     #[tokio::test]
@@ -346,5 +414,154 @@ mod tests {
             .unwrap();
         let response = app.oneshot(request).await.unwrap();
         assert_eq!(response.status(), http::StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn test_api_v1_get_invoice_by_id_route() {
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_get_invoice()
+            .returning(|_, _| Box::pin(async move { Ok(Default::default()) }));
+        let app = app_v1_with_live_mock_invoice_service(mock_invoice_service).await;
+        let request = Request::builder()
+            .uri("/api/v1/invoices/2b1b425e-dee2-4227-8d94-f470a0ce0cd0")
+            .header(http::header::AUTHORIZATION, mock_token())
+            .method(http::Method::GET)
+            .body(Body::empty())
+            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        assert_eq!(response.status(), http::StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_api_v1_get_invoices_by_user_route() {
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_get_invoices_for_user()
+            .returning(|_| Box::pin(async move { Ok(vec![]) }));
+        let app = app_v1_with_live_mock_invoice_service(mock_invoice_service).await;
+        let request = Request::builder()
+            .uri("/api/v1/invoices/users/2b1b425e-dee2-4227-8d94-f470a0ce0cd0")
+            .header(http::header::AUTHORIZATION, mock_token())
+            .method(http::Method::GET)
+            .body(Body::empty())
+            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        assert_eq!(response.status(), http::StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_api_v1_create_invoice_route() {
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_create_invoice()
+            .returning(|_| Box::pin(async move { Ok(Default::default()) }));
+        let app = app_v1_with_live_mock_invoice_service(mock_invoice_service).await;
+        let create_request = CreateInvoiceRequest::default();
+        let request = Request::builder()
+            .uri("/api/v1/invoices")
+            .header(http::header::CONTENT_TYPE, "application/json")
+            .header(http::header::AUTHORIZATION, mock_token())
+            .method(http::Method::POST)
+            .body(Body::from(serde_json::to_string(&create_request).unwrap()))
+            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        assert_eq!(response.status(), http::StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_api_v1_delete_invoice_route() {
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_delete_invoice()
+            .returning(|_| Box::pin(async move { Ok(Default::default()) }));
+        let app = app_v1_with_live_mock_invoice_service(mock_invoice_service).await;
+        let request = Request::builder()
+            .uri("/api/v1/invoices/2b1b425e-dee2-4227-8d94-f470a0ce0cd0")
+            .header(http::header::AUTHORIZATION, mock_token())
+            .method(http::Method::DELETE)
+            .body(Body::empty())
+            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        assert_eq!(response.status(), http::StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_api_v1_add_invoice_items_route() {
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_add_item_to_invoice()
+            .returning(|_, _| Box::pin(async move { Ok(Default::default()) }));
+        let app = app_v1_with_live_mock_invoice_service(mock_invoice_service).await;
+        let request_body = InvoiceItemRequest {
+            item_id: Uuid::new_v4(),
+            invoice_id: Uuid::new_v4(),
+        };
+        let request = Request::builder()
+            .uri(format!("/api/v1/invoices/{}/items", request_body.invoice_id.clone()))
+            .header(http::header::CONTENT_TYPE, "application/json")
+            .header(http::header::AUTHORIZATION, mock_token())
+            .method(http::Method::POST)
+            .body(Body::from(serde_json::to_string(&request_body).unwrap()))
+            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        assert_eq!(response.status(), http::StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_api_v1_remove_invoice_item_route() {
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_remove_item_from_invoice()
+            .returning(|_, _| Box::pin(async move { Ok(Default::default()) }));
+        let app = app_v1_with_live_mock_invoice_service(mock_invoice_service).await;
+        let request_body = InvoiceItemRequest {
+            item_id: Uuid::new_v4(),
+            invoice_id: Uuid::new_v4(),
+        };
+        let request = Request::builder()
+            .uri(format!("/api/v1/invoices/{}/items/{}", request_body.invoice_id.clone(), request_body.item_id.clone()))
+            .header(http::header::AUTHORIZATION, mock_token())
+            .method(http::Method::DELETE)
+            .body(Body::empty())
+            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        assert_eq!(response.status(), http::StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_api_v1_update_invoice_route() {
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_update_invoice()
+            .returning(|_| Box::pin(async move { Ok(Default::default()) }));
+        let app = app_v1_with_live_mock_invoice_service(mock_invoice_service).await;
+        let update_request = UpdateInvoiceRequest::default();
+        let request = Request::builder()
+            .uri(format!("/api/v1/invoices/{}", update_request.id.clone()))
+            .header(http::header::CONTENT_TYPE, "application/json")
+            .header(http::header::AUTHORIZATION, mock_token())
+            .method(http::Method::PUT)
+            .body(Body::from(serde_json::to_string(&update_request).unwrap()))
+            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        assert_eq!(response.status(), http::StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_api_v1_get_invoices_route() {
+        let mut mock_invoice_service = MockInvoiceService::new();
+        mock_invoice_service
+            .expect_list_all_invoices()
+            .returning(|_| Box::pin(async move { Ok(vec![]) }));
+        let app = app_v1_with_live_mock_invoice_service(mock_invoice_service).await;
+        let request = Request::builder()
+            .uri("/api/v1/invoices")
+            .header(http::header::AUTHORIZATION, mock_token())
+            .method(http::Method::GET)
+            .body(Body::empty())
+            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        assert_eq!(response.status(), http::StatusCode::OK);
     }
 }

@@ -1,3 +1,7 @@
+use crate::inventory::model::DeleteResults;
+use sqlx::postgres::PgQueryResult;
+
+pub mod invoice;
 pub mod item;
 pub mod person;
 
@@ -21,6 +25,15 @@ impl From<sqlx::Error> for RepoError {
                 }
             }
             _ => RepoError::Other(error.to_string()),
+        }
+    }
+}
+
+impl From<PgQueryResult> for DeleteResults {
+    fn from(result: PgQueryResult) -> Self {
+        DeleteResults {
+            id: String::new(),
+            deleted: result.rows_affected() > 0,
         }
     }
 }

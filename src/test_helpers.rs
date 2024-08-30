@@ -1,3 +1,4 @@
+use crate::inventory::services::invoice::MockInvoiceService;
 use crate::inventory::services::item::MockItemService;
 use crate::inventory::services::person::MockPersonService;
 use crate::jwt::{AuthRequest, Claims};
@@ -12,10 +13,12 @@ use uuid::Uuid;
 
 pub const FIRST_PERSON_UUID: &str = "2b1b425e-dee2-4227-8d94-f470a0ce0cd0";
 pub const FIRST_ITEM_UUID: &str = "6f4bdd88-d12e-421a-bac7-92ed2d9035aa";
+pub const FIRST_INVOICE_UUID: &str = "6f4bdd88-d12e-421a-bac7-92ed2d9035ba";
 pub const INVALID_UUID: &str = "00000000-0000-0000-0000-000000000000";
 pub const FIRST_PERSON_ID: i32 = 1;
 pub const FIRST_ITEM_ID: i32 = 1;
-
+pub const FIRST_INVOICE_ID: i32 = 1;
+pub const FIRST_INVOICE_UUID_CELL: OnceCell<Uuid> = OnceCell::new();
 pub const FIRST_ITEM_UUID_CELL: OnceCell<Uuid> = OnceCell::new();
 pub const INVALID_UUID_CELL: OnceCell<Uuid> = OnceCell::new();
 
@@ -34,6 +37,12 @@ pub fn invalid_uuid() -> Uuid {
         .clone()
 }
 
+pub fn first_invoice_uuid() -> Uuid {
+    FIRST_INVOICE_UUID_CELL
+        .get_or_init(|| Uuid::parse_str(FIRST_INVOICE_UUID).unwrap())
+        .clone()
+}
+
 pub fn string_to_uuid(s: &str) -> Uuid {
     Uuid::parse_str(s).unwrap()
 }
@@ -41,12 +50,15 @@ pub fn string_to_uuid(s: &str) -> Uuid {
 pub fn test_app_context(
     mock_person_service: MockPersonService,
     mock_item_service: MockItemService,
+    mock_invoice_service: MockInvoiceService,
 ) -> AppContext {
     let person_service = Arc::new(mock_person_service);
     let item_service = Arc::new(mock_item_service);
+    let invoice_service = Arc::new(mock_invoice_service);
     AppContext {
         person_service,
         item_service,
+        invoice_service,
     }
 }
 

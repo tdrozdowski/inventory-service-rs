@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT i.id, i.alt_id, i.user_id, i.total, i.paid, i.created_by, i.created_at, i.last_changed_by, i.last_update,\n            ii.item_id as item_alt_id, it.name as item_name, it.description as item_description, it.unit_price as item_unit_price\n            FROM invoices i\n            JOIN invoices_items ii ON i.alt_id = ii.invoice_id\n            JOIN items it ON ii.item_id = it.alt_id\n            WHERE i.alt_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "alt_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "total",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "paid",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "last_changed_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "last_update",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "item_alt_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "item_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
+        "name": "item_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "item_unit_price",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8a3dedcd9191fef07032efd25a0b4a54477685129c6dbd22b45fdc10ab4272af"
+}

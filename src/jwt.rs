@@ -275,6 +275,7 @@ mod tests {
         let app = crate::jwt::route().with_state(crate::test_helpers::test_app_context(
             crate::inventory::services::person::MockPersonService::new(),
             crate::inventory::services::item::MockItemService::new(),
+            crate::inventory::services::invoice::MockInvoiceService::new(),
         ));
         let request = axum::http::Request::builder()
             .uri("/")

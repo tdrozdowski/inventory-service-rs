@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM invoices\n            WHERE alt_id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "920cb41f46cf6a96de9fa8324ee531f06982f630e2c7289ebfe7a8ab7e94b674"
+}

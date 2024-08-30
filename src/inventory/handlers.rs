@@ -4,6 +4,7 @@ use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde_json::json;
 
+pub mod invoice;
 pub mod item;
 pub mod person;
 
