@@ -1,0 +1,73 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE invoices\n            SET total = $1, paid = $2, last_changed_by = $3, last_update = now()\n            WHERE alt_id = $4\n            RETURNING id, alt_id, user_id, total, paid, created_by, created_at, last_changed_by, last_update\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "alt_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "total",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "paid",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "last_changed_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "last_update",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Numeric",
+        "Bool",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "75053331c61f8ad52af5716fa8e668617d39824faeed5483cb59155c98485fa5"
+}
