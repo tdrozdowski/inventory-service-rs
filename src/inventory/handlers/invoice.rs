@@ -336,7 +336,6 @@ mod tests {
     use crate::inventory::services::ServiceError::NotFound;
     use crate::test_helpers::{mock_claims, test_app_context};
     use axum::extract::{Path, Query, State};
-    use garde::rules::AsStr;
     use uuid::Uuid;
 
     fn create_invoice(item_id: Uuid) -> Invoice {
@@ -619,7 +618,6 @@ mod tests {
     #[tokio::test]
     async fn test_delete_invoice() {
         let invoice_id = Uuid::new_v4();
-        let cloned_invoice_id = invoice_id.clone();
         let expected_results = DeleteResults {
             id: invoice_id.to_string(),
             deleted: true,
@@ -680,7 +678,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_invoice_mismatch_invoice_id() {
-        let invoice_id = Uuid::new_v4();
         let update_request = crate::inventory::model::UpdateInvoiceRequest {
             id: Uuid::new_v4(),
             total: 0.0,
@@ -693,7 +690,7 @@ mod tests {
             MockInvoiceService::new(),
         );
         let claims = mock_claims();
-        let response = crate::inventory::handlers::invoice::update_invoice(
+        let response = update_invoice(
             claims,
             Path(Uuid::new_v4().to_string()),
             State(app_context),
