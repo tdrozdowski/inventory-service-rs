@@ -17,7 +17,7 @@ jobs:
       - name: Install SQLX CLI
         run: cargo install sqlx-cli --no-default-features --features postgres
       - name: Docker Compose
-        run: docker compose up db -d
+        run: docker compose up -d db
       - name: Run migrations
         run: sqlx database setup --database-url postgresql://inventory:secret@localhost:5432/inventory
       - name: Generate code coverage
@@ -25,7 +25,7 @@ jobs:
           DATABASE_URL: postgresql://inventory:secret@localhost:5432/inventory
         run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4.5.0
+        uses: codecov/codecov-action@v5.0.7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: lcov.info
