@@ -1,4 +1,5 @@
 /.idea
 /target
 .env
+.env-compose
 data
