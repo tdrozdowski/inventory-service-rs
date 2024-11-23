@@ -20,7 +20,7 @@ jobs:
       - name: Build
         run: cargo build --verbose
       - name: Docker Compose
-        run: docker compose up -d db
+        run: touch .env-compose && docker compose up -d db
       - name: Run migrations
         run: sqlx database setup --database-url postgresql://inventory:secret@localhost:5432/inventory
       - name: Run tests
