@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sqlx-migrate-job
+  namespace: your-namespace
+spec:
+  template:
+    spec:
+      containers:
+      - name: sqlx-migrate
+        image: your-image-registry/sqlx-migrate:latest
+        command: ["sqlx", "migrate", "run"]
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: database-url
+      restartPolicy: OnFailure
+  backoffLimit: 4
