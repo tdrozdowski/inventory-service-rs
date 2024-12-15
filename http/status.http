@@ -1,0 +1,11 @@
+GET http://{{hostAndPort}}/status/readyz
+
+###
+
+GET http://{{hostAndPort}}/status/healthz
+
+###
+
+GET http://{{hostAndPort}}/status/livez
+
+###

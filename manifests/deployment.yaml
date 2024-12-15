@@ -18,6 +18,18 @@ spec:
           image: ghcr.io/tdrozdowski/inventory-service-rs:latest
           ports:
             - containerPort: 3000
+          livenessProbe:
+            httpGet:
+              port: 3000
+              path: /status/healthz
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /status/readyz
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
           env:
             - name: DATABASE_URL
               valueFrom:
@@ -41,5 +53,6 @@ spec:
             requests:
               cpu: "250m"
               memory: "256Mi"
+
       imagePullSecrets:
         - name: ghcr-login-secret
