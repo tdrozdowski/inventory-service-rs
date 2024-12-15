@@ -1,9 +1,12 @@
-name: Build and Push Docker Image
+name: Build and Push Main Docker Image
 
 on:
   release:
     types:
       - published
+  push:
+    branches:
+      - staging
 
 jobs:
   build_and_push:
@@ -12,6 +15,23 @@ jobs:
       contents: read
       packages: write
     steps:
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          # list of Docker images to use as base name for tags
+          images: |
+            ghcr.io/tdrozdowski/inventory-service-rs
+          # generate Docker tags based on the following events/attributes
+          tags: |
+            type=schedule
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -31,7 +51,8 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/inventory-service-rs:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
       - name: Verify Docker image
         run: |

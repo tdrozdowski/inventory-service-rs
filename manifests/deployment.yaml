@@ -2,9 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: inventory-service
-  namespace: your-namespace
+  namespace: examples
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: inventory-service
@@ -15,14 +15,31 @@ spec:
     spec:
       containers:
         - name: inventory-service-container
-          image: your-image-registry/inventory-service:latest
+          image: ghcr.io/tdrozdowski/inventory-service-rs:latest
           ports:
-            - containerPort: 8080
+            - containerPort: 3000
           env:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: db-credentials
-                  key: database-url
+                  name: sqlx-db-secret
+                  key: DATABASE_URL
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-service-jwt-secret
+                  key: JWT_SECRET
+            - name: RUST_LOG
+              valueFrom:
+                configMapKeyRef:
+                  name: inventory-service-config
+                  key: RUST_LOG
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
       imagePullSecrets:
-        - name: regcred
+        - name: ghcr-login-secret

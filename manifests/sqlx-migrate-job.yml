@@ -18,4 +18,4 @@ spec:
       restartPolicy: Never
       imagePullSecrets:
         - name: ghcr-login-secret
-  backoffLimit: 4
+  backoffLimit: 1
