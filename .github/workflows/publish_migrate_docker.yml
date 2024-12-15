@@ -21,7 +21,6 @@ jobs:
         with:
           # list of Docker images to use as base name for tags
           images: |
-            tdrozdowski/inventory-service-migrate-rs
             ghcr.io/tdrozdowski/inventory-service-migrate-rs
           # generate Docker tags based on the following events/attributes
           tags: |
