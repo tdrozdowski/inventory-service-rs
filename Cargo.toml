@@ -7,6 +7,7 @@ edition = "2021"
 async-trait = "0.1"
 axum = { version = "0.7", features = ["json", "macros"] }
 axum-extra = { version = "0.9", features = ["typed-header"] }
+axum-prometheus = "0.7.0"
 bigdecimal = { version = "0.4", features = ["serde"] }
 axum-macros = "0.4"
 chrono = { version = "0.4", features = ["serde"] }

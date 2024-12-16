@@ -1,4 +1,4 @@
-use inventory_service::start_server;
+use inventory_service::{start_metrics_server, start_server};
 use tracing::info;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -7,7 +7,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 async fn main() {
     init();
     info!("Starting server...");
-    start_server().await;
+    let (_main_server, _metrics_server) = tokio::join!(start_server(), start_metrics_server());
 }
 
 fn init() {

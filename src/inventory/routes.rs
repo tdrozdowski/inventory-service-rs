@@ -115,10 +115,6 @@ fn v1_routes() -> Router<AppContext> {
     Router::new().nest("/v1", all_routes())
 }
 
-pub(crate) fn api_routes() -> Router<AppContext> {
-    Router::new().nest("/api", v1_routes())
-}
-
 pub(crate) fn api_routes_with_status_routes() -> Router<AppContext> {
     Router::new()
         .nest("/api", v1_routes())
@@ -131,7 +127,7 @@ mod tests {
         CreateInvoiceRequest, CreateItemRequest, CreatePersonRequest, DeleteResults,
         InvoiceItemRequest, Item, Person, UpdateInvoiceRequest, UpdateItemRequest,
     };
-    use crate::inventory::routes::{api_routes, item_routes, person_routes};
+    use crate::inventory::routes::{api_routes_with_status_routes, item_routes, person_routes};
     use crate::inventory::services::invoice::MockInvoiceService;
     use crate::inventory::services::item::MockItemService;
     use crate::inventory::services::person::MockPersonService;
@@ -169,20 +165,12 @@ mod tests {
         app(mock_person_service, mock_item_service, mock_invoice_service).await
     }
 
-    async fn app_with_live_mock_invoice_service(
-        mock_invoice_service: MockInvoiceService,
-    ) -> Router {
-        let mock_person_service = MockPersonService::new();
-        let mock_item_service = MockItemService::new();
-        app(mock_person_service, mock_item_service, mock_invoice_service).await
-    }
-
     async fn app_v1(
         mock_person_service: MockPersonService,
         mock_item_service: MockItemService,
         mock_invoice_service: MockInvoiceService,
     ) -> Router {
-        api_routes().with_state(test_app_context(
+        api_routes_with_status_routes().with_state(test_app_context(
             mock_person_service,
             mock_item_service,
             mock_invoice_service,

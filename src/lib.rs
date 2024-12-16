@@ -9,10 +9,17 @@ use crate::inventory::services::invoice::InvoiceService;
 use crate::inventory::services::item::ItemService;
 use crate::inventory::services::person::{PersonService, PersonServiceImpl};
 use axum::extract::MatchedPath;
-use axum::http::Request;
-use axum::Router;
+use axum::extract::Request;
+use axum::middleware::Next;
+use axum::response::IntoResponse;
+use axum::routing::get;
+use axum::{middleware, Router};
+use axum_prometheus::metrics;
+use axum_prometheus::metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle};
 use sqlx::PgPool;
+use std::future::ready;
 use std::sync::Arc;
+use std::time::Instant;
 use tower_http::trace::TraceLayer;
 use tracing::{info, info_span};
 use utoipa::OpenApi;
@@ -60,6 +67,26 @@ impl AppContext {
     }
 }
 
+fn setup_metrics_recorder() -> PrometheusHandle {
+    const EXPONENTIAL_SECONDS: &[f64] = &[
+        0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0,
+    ];
+
+    PrometheusBuilder::new()
+        .set_buckets_for_metric(
+            Matcher::Full("http_requests_duration_seconds".to_string()),
+            EXPONENTIAL_SECONDS,
+        )
+        .unwrap()
+        .install_recorder()
+        .unwrap()
+}
+
+fn metrics_app() -> Router {
+    let recorder_handle = setup_metrics_recorder();
+    Router::new().route("/metrics", get(move || ready(recorder_handle.render())))
+}
+
 pub async fn start_server() {
     let app_context = AppContext::new().await;
     let app = Router::new()
@@ -67,6 +94,7 @@ pub async fn start_server() {
         .nest("/api/v1/authorize", jwt::route())
         .merge(inventory::routes::api_routes_with_status_routes())
         .with_state(app_context)
+        .route_layer(middleware::from_fn(track_metrics))
         .layer(
             TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {
                 // Log the matched route's path (with placeholders not filled in).
@@ -84,7 +112,48 @@ pub async fn start_server() {
                 )
             }),
         );
-    info!("Server initialization completed.  Listening on: http://localhost:3000");
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    info!(
+        "Server initialization completed. Listening on {}",
+        listener.local_addr().unwrap()
+    );
     axum::serve(listener, app).await.unwrap();
+}
+
+pub async fn start_metrics_server() {
+    let app = metrics_app();
+
+    // NOTE: expose metrics endpoint on a different port
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3001").await.unwrap();
+    info!(
+        "Metrics server initialization completed. Listening on {}",
+        listener.local_addr().unwrap()
+    );
+    axum::serve(listener, app).await.unwrap();
+}
+
+async fn track_metrics(req: Request, next: Next) -> impl IntoResponse {
+    let start = Instant::now();
+    let path = if let Some(matched_path) = req.extensions().get::<MatchedPath>() {
+        matched_path.as_str().to_owned()
+    } else {
+        req.uri().path().to_owned()
+    };
+    let method = req.method().clone();
+
+    let response = next.run(req).await;
+
+    let latency = start.elapsed().as_secs_f64();
+    let status = response.status().as_u16().to_string();
+
+    let labels = [
+        ("method", method.to_string()),
+        ("path", path),
+        ("status", status),
+    ];
+
+    metrics::counter!("http_requests_total", &labels).increment(1);
+    metrics::histogram!("http_requests_duration_seconds", &labels).record(latency);
+
+    response
 }
