@@ -2,7 +2,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: inventory-service-metrics-servicemonitor
-  namespace: observability
+  namespace: examples
   labels:
     app: inventory-service
     release: kube-prometheus-stack
