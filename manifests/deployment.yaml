@@ -17,7 +17,12 @@ spec:
         - name: inventory-service-container
           image: ghcr.io/tdrozdowski/inventory-service-rs:1.0.3
           ports:
-            - containerPort: 3000
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+            - name: metrics
+              containerPort: 3001
+              protocol: TCP
           livenessProbe:
             httpGet:
               port: 3000
