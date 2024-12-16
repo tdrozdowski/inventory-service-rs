@@ -65,7 +65,7 @@ pub async fn start_server() {
     let app = Router::new()
         .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
         .nest("/api/v1/authorize", jwt::route())
-        .merge(inventory::routes::api_routes())
+        .merge(inventory::routes::api_routes_with_status_routes())
         .with_state(app_context)
         .layer(
             TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {

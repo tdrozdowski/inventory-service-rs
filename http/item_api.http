@@ -1,4 +1,7 @@
-POST http://localhost:3000/api/v1/authorize
+### Enable verbose logs
+### @trace
+
+POST http://{{hostAndPort}}/{{pathPrefix}}api/v1/authorize
 Content-Type: application/json
 
 {
@@ -15,7 +18,7 @@ OPTIONS http://localhost:3000/api/v1/items?page_size=100
 
 ###
 
-GET http://localhost:3000/api/v1/items?page_size=1
+GET http://{{hostAndPort}}/{{pathPrefix}}api/v1/items?page_size=1
 Authorization: Bearer {{access_token}}
 
 ###

@@ -8,6 +8,18 @@ services:
       - .env-compose
     ports:
       - "3000:3000"
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile-migrate
+    depends_on:
+      - db
+    env_file:
+      - .env-compose
+    networks:
+      - app_network
+
   db:
     image: postgres
     restart: always
@@ -17,3 +29,9 @@ services:
       - "5432:5432"
     volumes:
       - ./data:/var/lib/postgresql/data
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge

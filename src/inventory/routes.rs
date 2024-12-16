@@ -1,3 +1,4 @@
+use crate::inventory::handlers::status::{healthz, livenessz, readyz};
 use crate::inventory::handlers::{invoice, item, person};
 use crate::AppContext;
 use axum::http::{HeaderValue, Method};
@@ -96,6 +97,13 @@ fn invoice_routes() -> Router<AppContext> {
         )
 }
 
+fn status_routes() -> Router<AppContext> {
+    Router::new()
+        .route("/healthz", axum::routing::get(healthz))
+        .route("/livez", axum::routing::get(livenessz))
+        .route("/readyz", axum::routing::get(readyz))
+}
+
 fn all_routes() -> Router<AppContext> {
     Router::new()
         .nest("/persons", person_routes())
@@ -111,9 +119,18 @@ pub(crate) fn api_routes() -> Router<AppContext> {
     Router::new().nest("/api", v1_routes())
 }
 
+pub(crate) fn api_routes_with_status_routes() -> Router<AppContext> {
+    Router::new()
+        .nest("/api", v1_routes())
+        .nest("/status", status_routes())
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::inventory::model::{CreateInvoiceRequest, CreateItemRequest, CreatePersonRequest, DeleteResults, InvoiceItemRequest, Item, Person, UpdateInvoiceRequest, UpdateItemRequest};
+    use crate::inventory::model::{
+        CreateInvoiceRequest, CreateItemRequest, CreatePersonRequest, DeleteResults,
+        InvoiceItemRequest, Item, Person, UpdateInvoiceRequest, UpdateItemRequest,
+    };
     use crate::inventory::routes::{api_routes, item_routes, person_routes};
     use crate::inventory::services::invoice::MockInvoiceService;
     use crate::inventory::services::item::MockItemService;
@@ -498,7 +515,10 @@ mod tests {
             invoice_id: Uuid::new_v4(),
         };
         let request = Request::builder()
-            .uri(format!("/api/v1/invoices/{}/items", request_body.invoice_id.clone()))
+            .uri(format!(
+                "/api/v1/invoices/{}/items",
+                request_body.invoice_id.clone()
+            ))
             .header(http::header::CONTENT_TYPE, "application/json")
             .header(http::header::AUTHORIZATION, mock_token())
             .method(http::Method::POST)
@@ -520,7 +540,11 @@ mod tests {
             invoice_id: Uuid::new_v4(),
         };
         let request = Request::builder()
-            .uri(format!("/api/v1/invoices/{}/items/{}", request_body.invoice_id.clone(), request_body.item_id.clone()))
+            .uri(format!(
+                "/api/v1/invoices/{}/items/{}",
+                request_body.invoice_id.clone(),
+                request_body.item_id.clone()
+            ))
             .header(http::header::AUTHORIZATION, mock_token())
             .method(http::Method::DELETE)
             .body(Body::empty())

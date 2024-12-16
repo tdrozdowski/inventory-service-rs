@@ -2,4 +2,5 @@
 /target
 .env
 .env-compose
+.env-migrate
 data

@@ -7,6 +7,7 @@ use serde_json::json;
 pub mod invoice;
 pub mod item;
 pub mod person;
+pub mod status;
 
 impl IntoResponse for ServiceError {
     fn into_response(self) -> Response {

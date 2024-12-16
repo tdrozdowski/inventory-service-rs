@@ -1,4 +1,4 @@
-name: Build and Push Main Docker Image
+name: Build and Push Docker Image for Migrate
 
 on:
   release:
@@ -21,7 +21,7 @@ jobs:
         with:
           # list of Docker images to use as base name for tags
           images: |
-            ghcr.io/tdrozdowski/inventory-service-rs
+            ghcr.io/tdrozdowski/inventory-service-migrate-rs
           # generate Docker tags based on the following events/attributes
           tags: |
             type=schedule
@@ -50,10 +50,11 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: Dockerfile-migrate
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Verify Docker image
         run: |
-          docker images ghcr.io/${{ github.repository_owner }}/inventory-service-rs:latest
+          docker images ghcr.io/${{ github.repository_owner }}/inventory-service-migrate-rs:latest

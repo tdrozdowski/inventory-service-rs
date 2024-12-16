@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sqlx-migrate-job
+  namespace: examples
+spec:
+  template:
+    spec:
+      containers:
+        - name: sqlx-migrate
+          image: ghcr.io/tdrozdowski/inventory-service-migrate-rs:latest
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: sqlx-db-secret # The name of the Secret
+                  key: DATABASE_URL    # The key containing the database URL in the Secret
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: ghcr-login-secret
+  backoffLimit: 1
