@@ -1,4 +1,4 @@
-use crate::inventory::model::{CreatePersonRequest, Pagination, Person};
+use crate::inventory::model::{ApiError, CreatePersonRequest, Pagination, Person};
 use crate::inventory::services::ServiceError;
 use crate::jwt::Claims;
 use crate::{inventory, AppContext};
