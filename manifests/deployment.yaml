@@ -51,6 +51,11 @@ spec:
                 configMapKeyRef:
                   name: inventory-service-config
                   key: RUST_LOG
+            - name: OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: inventory-service-config
+                  key: OTLP_ENDPOINT
           resources:
             limits:
               cpu: "500m"
