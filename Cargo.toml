@@ -29,8 +29,8 @@ tower = { version = "0.5", features = ["full"] }
 tower-http = { version = "0.5", features = ["trace", "cors"] }
 tower-service = "0.3"
 tracing = "0.1.26"
-tracing-opentelemetry = "0.28.0"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter", "fmt", "json"] }
+tracing-opentelemetry = { version = "0.28.0", features = ["metrics", "tracing-log"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "fmt", "json", "std"] }
 uuid = { version = "1.6.1", features = ["serde", "v4"] }
 utoipa = { version = "5.0.0-alpha.2", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-redoc = { version = "4.0.1-alpha.0", features = ["axum"] }

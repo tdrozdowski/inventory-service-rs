@@ -107,8 +107,7 @@ pub async fn start_server() {
                 info_span!(
                     "http_request",
                     method = ?request.method(),
-                    matched_path,
-                    some_other_field = tracing::field::Empty, // TODO - remove or add new fields as determined
+                    matched_path
                 )
             }),
         );

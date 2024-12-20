@@ -1,6 +1,9 @@
 use inventory_service::{start_metrics_server, start_server};
+use opentelemetry::logs::LoggerProvider;
 use opentelemetry::trace::TracerProvider as _;
+use opentelemetry::KeyValue;
 use opentelemetry_otlp::WithExportConfig;
+use opentelemetry_sdk::Resource;
 use tracing::info;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -15,6 +18,7 @@ async fn main() {
 async fn init() {
     let otlp_endpoint =
         std::env::var("OTLP_ENDPOINT").unwrap_or_else(|_| "http://localhost:4317".to_string());
+    let log_endpoint = otlp_endpoint.clone();
     let provider = opentelemetry_sdk::trace::TracerProvider::builder()
         .with_batch_exporter(
             opentelemetry_otlp::SpanExporter::builder()
@@ -24,6 +28,10 @@ async fn init() {
                 .expect("Failed to create exporter"),
             opentelemetry_sdk::runtime::Tokio,
         )
+        .with_resource(Resource::new(vec![KeyValue::new(
+            "service.name",
+            "inventory_service",
+        )]))
         .build();
 
     let tracer = provider.tracer("inventory-service");
