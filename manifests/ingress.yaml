@@ -3,15 +3,13 @@ kind: Ingress
 metadata:
   name: inventory-service-ingress
   namespace: examples
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
   ingressClassName: "nginx"
   rules:
-    - host: lab1.local # Replace with your desired host
+    - host: inventory.lab1.local # Replace with your desired host
       http:
         paths:
-          - path: /inventory-service(/|$)(.*)
+          - path: /
             pathType: Prefix
             backend:
               service:
