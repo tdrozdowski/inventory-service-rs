@@ -1,4 +1,4 @@
-POST http://localhost:3000/api/v1/authorize
+POST http://{{hostAndPort}}/api/v1/authorize
 Content-Type: application/json
 
 {
@@ -11,25 +11,25 @@ Content-Type: application/json
 %}
 
 ###
-OPTIONS http://localhost:3000/api/v1/invoices
+OPTIONS http://{{hostAndPort}}/api/v1/invoices
 
 ###
-GET http://localhost:3000/api/v1/invoices?page_size=1
+GET http://{{hostAndPort}}/api/v1/invoices?page_size=1
 Authorization: Bearer {{access_token}}
 
 ###
 
-GET http://localhost:3000/api/v1/invoices?last_id=30&page_size=5
+GET http://{{hostAndPort}}/api/v1/invoices?last_id=30&page_size=5
 Authorization: Bearer {{access_token}}
 
 ###
 
-GET http://localhost:3000/api/v1/invoices/6f4bdd88-d12e-421a-bac7-92ed2d9035ba
+GET http://{{hostAndPort}}/api/v1/invoices/6f4bdd88-d12e-421a-bac7-92ed2d9035ba
 Authorization: Bearer {{access_token}}
 
 ###
 
-POST http://localhost:3000/api/v1/invoices
+POST http://{{hostAndPort}}/api/v1/invoices
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 
@@ -47,12 +47,12 @@ Authorization: Bearer {{access_token}}
 
 ###
 
-GET http://localhost:3000/api/v1/invoices/{{new_invoice_id}}
+GET http://{{hostAndPort}}/api/v1/invoices/{{new_invoice_id}}
 Authorization: Bearer {{access_token}}
 
 ###
 
-PUT http://localhost:3000/api/v1/invoices/{{new_invoice_id}}
+PUT http://{{hostAndPort}}/api/v1/invoices/{{new_invoice_id}}
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 
@@ -64,7 +64,7 @@ Authorization: Bearer {{access_token}}
 }
 
 ###
-GET http://localhost:3000/api/v1/items?page_size=3
+GET http://{{hostAndPort}}/api/v1/items?page_size=3
 Authorization: Bearer {{access_token}}
 
 > {%
@@ -72,7 +72,7 @@ Authorization: Bearer {{access_token}}
 %}
 
 ###
-POST http://localhost:3000/api/v1/invoices/{{new_invoice_id}}/items
+POST http://{{hostAndPort}}/api/v1/invoices/{{new_invoice_id}}/items
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 
@@ -83,21 +83,21 @@ Authorization: Bearer {{access_token}}
 }
 
 ###
-GET http://localhost:3000/api/v1/invoices/{{new_invoice_id}}?with_items=true
+GET http://{{hostAndPort}}/api/v1/invoices/{{new_invoice_id}}?with_items=true
 Authorization: Bearer {{access_token}}
 
 ###
-DELETE http://localhost:3000/api/v1/invoices/{{new_invoice_id}}/items/{{item_id}}
-Authorization: Bearer {{access_token}}
-
-###
-
-DELETE http://localhost:3000/api/v1/invoices/{{new_invoice_id}}
+DELETE http://{{hostAndPort}}/api/v1/invoices/{{new_invoice_id}}/items/{{item_id}}
 Authorization: Bearer {{access_token}}
 
 ###
 
-GET http://localhost:3000/api/v1/invoices/users/2b1b425e-dee2-4227-8d94-f470a0ce0cd0
+DELETE http://{{hostAndPort}}/api/v1/invoices/{{new_invoice_id}}
+Authorization: Bearer {{access_token}}
+
+###
+
+GET http://{{hostAndPort}}/api/v1/invoices/users/2b1b425e-dee2-4227-8d94-f470a0ce0cd0
 Authorization: Bearer {{access_token}}
 
 ###

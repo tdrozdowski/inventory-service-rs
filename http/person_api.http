@@ -1,4 +1,4 @@
-POST http://localhost:3000/api/v1/authorize
+POST http://{{hostAndPort}}/api/v1/authorize
 Content-Type: application/json
 
 {
@@ -12,16 +12,16 @@ Content-Type: application/json
 
 ###
 
-OPTIONS http://localhost:3000/api/v1/persons?page_size=100
+OPTIONS http://{{hostAndPort}}/api/v1/persons?page_size=100
 Authorization: Bearer {{access_token}}
 
 ###
 
-GET http://localhost:3000/api/v1/persons?page_size=20&last_id=11
+GET http://{{hostAndPort}}/api/v1/persons?page_size=20&last_id=11
 Authorization: Bearer {{access_token}}
 
 ###
-POST http://localhost:3000/api/v1/persons
+POST http://{{hostAndPort}}/api/v1/persons
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 
@@ -37,17 +37,17 @@ Authorization: Bearer {{access_token}}
 
 ###
 
-OPTIONS http://localhost:3000/api/v1/persons/{{new_user_id}}
+OPTIONS http://{{hostAndPort}}/api/v1/persons/{{new_user_id}}
 Authorization: Bearer {{access_token}}
 
 ###
 
-GET http://localhost:3000/api/v1/persons/{{new_user_id}}
+GET http://{{hostAndPort}}/api/v1/persons/{{new_user_id}}
 Authorization: Bearer {{access_token}}
 
 ###
 
-DELETE http://localhost:3000/api/v1/persons/{{new_user_id}}
+DELETE http://{{hostAndPort}}/api/v1/persons/{{new_user_id}}
 Authorization: Bearer {{access_token}}
 
 ###
