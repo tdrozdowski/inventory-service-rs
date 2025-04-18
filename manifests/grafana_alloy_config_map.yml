@@ -51,7 +51,7 @@ data:
 
     loki.write "local_logs" {
       endpoint {
-        url = "http://loki.observability.local/loki/api/v1/push"
+        url = "http://loki-gateway.loki.local/loki/api/v1/push"
       }
     }
     

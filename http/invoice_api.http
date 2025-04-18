@@ -34,7 +34,7 @@ Content-Type: application/json
 Authorization: Bearer {{access_token}}
 
 {
-  "user_id": "2b1b425e-dee2-4227-8d94-f470a0ce0cd0",
+  "user_id": "46a980a7-020a-4151-8535-7c4a98b4f382",
   "total": 100.00,
   "created_by": "http_client_test",
   "items": [],
