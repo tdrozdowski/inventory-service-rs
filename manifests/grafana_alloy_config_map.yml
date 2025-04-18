@@ -87,3 +87,4 @@ data:
           receivers: [ otlp ]
           processors: [ batch ]
           exporters: [ loki ]
+    ALLOY_CONFIG: "/etc/alloy/config.yaml"
