@@ -16,8 +16,6 @@ spec:
       containers:
         - name: grafana-alloy
           image: grafana/alloy:latest
-          args:
-            - "--config=/etc/alloy/config.yaml"
           ports:
             - containerPort: 4317  # OTLP gRPC
             - containerPort: 4318  # OTLP HTTP
