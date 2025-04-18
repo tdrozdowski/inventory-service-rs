@@ -5,58 +5,52 @@ metadata:
   namespace: examples
 data:
   config.alloy: |
-    global {
-      scrape_interval = "15s"
-    }
-
-    prometheus {
-      global {
-        scrape_interval = "15s"
-      }
-
-      scrape_config {
-        job_name = "inventory-service"
-        
-        kubernetes_sd_config {
-          role = "pod"
-        }
-
-        relabel_config {
-          source_labels = ["__meta_kubernetes_pod_label_app"]
-          action = "keep"
-          regex = "inventory-service"
-        }
-
-        relabel_config {
-          source_labels = ["__meta_kubernetes_pod_container_port_name"]
-          action = "keep"
-          regex = "metrics"
-        }
-      }
-    }
-
-    otlp {
+    otelcol.receiver.otlp "example" {
       grpc {
         endpoint = "0.0.0.0:4317"
       }
+
       http {
         endpoint = "0.0.0.0:4318"
       }
-    }
-
-    logs {
-      pipeline {
-        receiver = "otlp"
+    
+      output {
+        metrics = [otelcol.processor.batch.example.input]
+        logs    = [otelcol.processor.batch.example.input]
+        traces  = [otelcol.processor.batch.example.input]
       }
     }
 
-    metrics {
-      pipeline {
-        receivers = ["otlp"]
-        exporters = ["prometheus"]
+    otelcol.processor.batch "example" {
+      output {
+        metrics = [otelcol.exporter.prometheus.local_metrics.input]
+        logs    = [otelcol.exporter.loki.local_logs.input]
+        traces  = [otelcol.exporter.otlp.local_traces.input]
       }
+    }
 
-      prometheus {
-        endpoint = "0.0.0.0:8889"
+    otelcol.exporter.otlp "local_traces" {
+      client {
+        endpoint = "otel-collector-traces.example.svc.cluster.local:4317"
+      }
+    }
+
+    otelcol.exporter.prometheus "local_metrics" {
+      forward_to = [prometheus.remote_write.local_metrics.receiver]
+    }
+
+    prometheus.remote_write "local_metrics" {
+      endpoint {
+        url = "http:/prometheus-stack-kube-prom-prometheus.monitoring.local/api/v1/write"
+      }
+    }
+
+    otelcol.exporter.loki "local_logs" {
+      forward_to = [loki.write.local_logs.receiver]
+    }
+
+    loki.write "local_logs" {
+      endpoint {
+        url = "http://loki.observability.local/loki/api/v1/push"
       }
     }
