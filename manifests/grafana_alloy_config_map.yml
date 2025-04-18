@@ -5,66 +5,58 @@ metadata:
   namespace: examples
 data:
   config.alloy: |
-    receivers {
-      otlp {
-        protocols {
-          grpc {
-            endpoint = "0.0.0.0:4317"
-          }
-          http {
-            endpoint = "0.0.0.0:4318"
-          }
-        }
+    global {
+      scrape_interval = "15s"
+    }
+
+    prometheus {
+      global {
+        scrape_interval = "15s"
       }
-      
-      prometheus {
-        config {
-          scrape_configs {
-            job_name = "inventory-service"
-            kubernetes_sd_configs {
-              role = "pod"
-            }
-            relabel_configs {
-              source_labels = ["__meta_kubernetes_pod_label_app"]
-              action = "keep"
-              regex = "inventory-service"
-            }
-            relabel_configs {
-              source_labels = ["__meta_kubernetes_pod_container_port_name"]
-              action = "keep"
-              regex = "metrics"
-            }
-          }
+
+      scrape_config {
+        job_name = "inventory-service"
+        
+        kubernetes_sd_config {
+          role = "pod"
+        }
+
+        relabel_config {
+          source_labels = ["__meta_kubernetes_pod_label_app"]
+          action = "keep"
+          regex = "inventory-service"
+        }
+
+        relabel_config {
+          source_labels = ["__meta_kubernetes_pod_container_port_name"]
+          action = "keep"
+          regex = "metrics"
         }
       }
     }
 
-    processors {
-      batch {}
+    otlp {
+      grpc {
+        endpoint = "0.0.0.0:4317"
+      }
+      http {
+        endpoint = "0.0.0.0:4318"
+      }
     }
 
-    exporters {
+    logs {
+      pipeline {
+        receiver = "otlp"
+      }
+    }
+
+    metrics {
+      pipeline {
+        receivers = ["otlp"]
+        exporters = ["prometheus"]
+      }
+
       prometheus {
         endpoint = "0.0.0.0:8889"
-      }
-    }
-
-    service {
-      pipelines {
-        metrics {
-          receivers = ["otlp", "prometheus"]
-          processors = ["batch"]
-          exporters = ["prometheus"]
-        }
-        traces {
-          receivers = ["otlp"]
-          processors = ["batch"]
-          exporters = []
-        }
-        logs {
-          receivers = ["otlp"]
-          processors = ["batch"]
-          exporters = []
-        }
       }
     }
