@@ -12,6 +12,11 @@ spec:
     metadata:
       labels:
         app: inventory-service
+      annotations:
+        profiles.grafana.com/memory.scrape: "true"
+        profiles.grafana.com/memory.port: "8080"
+        profiles.grafana.com/cpu.scrape: "true"
+        profiles.grafana.com/cpu.port: "8080"
     spec:
       containers:
         - name: inventory-service-container

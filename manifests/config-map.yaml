@@ -5,4 +5,4 @@ metadata:
   namespace: examples
 data:
   RUST_LOG: "debug"
-  OTLP_ENDPOINT: "http://tempo-distributor.observability:4317"
+  OTLP_ENDPOINT: "grafana-alloy:4317"
