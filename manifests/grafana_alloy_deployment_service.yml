@@ -15,14 +15,15 @@ spec:
     spec:
       containers:
         - name: grafana-alloy
-          image: grafana/alloy:latest
+          image: grafana/alloy:1.8.1
           command:
-            - "alloy run --stability.level=public-preview"
+            - "/bin/alloy run --stability.level=public-preview"
           ports:
             - containerPort: 4317  # OTLP gRPC
             - containerPort: 4318  # OTLP HTTP
             - containerPort: 8888  # Metrics
             - containerPort: 8889  # Prometheus exporter
+            - containerPort: 9999  # pyroscope profiles over http
           volumeMounts:
             - name: config
               mountPath: /etc/alloy
@@ -52,3 +53,6 @@ spec:
     - name: prometheus
       port: 8889
       targetPort: 8889
+    - name: pyroscope
+      port: 9999
+      targetPort: 9999
