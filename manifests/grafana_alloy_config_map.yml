@@ -5,86 +5,70 @@ metadata:
   namespace: examples
 data:
   config.alloy: |
-    receivers:
-      otlp:
-        protocols:
-          grpc:
-            endpoint: 0.0.0.0:4317
-          http:
-            endpoint: 0.0.0.0:4318
-      prometheus:
-        config:
-          scrape_configs:
-            - job_name: 'inventory-service'
-              kubernetes_sd_configs:
-                - role: pod
-              relabel_configs:
-                - source_labels: [ __meta_kubernetes_pod_label_app ]
-                  action: keep
-                  regex: inventory-service
-                - source_labels: [ __meta_kubernetes_pod_container_port_name ]
-                  action: keep
-                  regex: metrics
-            # Profile scraping configurations
-            - job_name: 'profiles'
-              kubernetes_sd_configs:
-                - role: pod
-              relabel_configs:
-                - source_labels: [ __meta_kubernetes_pod_annotation_profiles_grafana_com_memory_scrape ]
-                  action: keep
-                  regex: true
-              metrics_path: /debug/pprof/memory
-              params:
-                seconds: [ "30" ]
-              scrape_interval: 1m
-            - job_name: 'cpu-profiles'
-              kubernetes_sd_configs:
-                - role: pod
-              relabel_configs:
-                - source_labels: [ __meta_kubernetes_pod_annotation_profiles_grafana_com_cpu_scrape ]
-                  action: keep
-                  regex: true
-              metrics_path: /debug/pprof/profile
-              params:
-                seconds: [ "30" ]
-              scrape_interval: 1m
-            - job_name: 'goroutine-profiles'
-              kubernetes_sd_configs:
-                - role: pod
-              relabel_configs:
-                - source_labels: [ __meta_kubernetes_pod_annotation_profiles_grafana_com_goroutine_scrape ]
-                  action: keep
-                  regex: true
-              metrics_path: /debug/pprof/goroutine
-              scrape_interval: 1m
+    receivers {
+      otlp {
+        protocols {
+          grpc {
+            endpoint = "0.0.0.0:4317"
+          }
+          http {
+            endpoint = "0.0.0.0:4318"
+          }
+        }
+      }
+    
+      prometheus {
+        config {
+          scrape_configs {
+            job_name = "inventory-service"
+            kubernetes_sd_configs [
+              {
+                role = "pod"
+              }
+            ]
+            relabel_configs [
+              {
+                source_labels = ["__meta_kubernetes_pod_label_app"]
+                action = "keep"
+                regex = "inventory-service"
+              },
+              {
+                source_labels = ["__meta_kubernetes_pod_container_port_name"]
+                action = "keep"
+                regex = "metrics"
+              }
+            ]
+          }
+        }
+      }
+    }
 
-    processors:
-      batch:
-        timeout: 1s
-        send_batch_size: 1024
+    processors {
+      batch {}
+    }
 
-    exporters:
-      otlp:
-        endpoint: "tempo-distributor.observability"
-        tls:
-          insecure: true
-      prometheus:
-        endpoint: 0.0.0.0:8889
-      loki:
-        endpoint: "http://loki.observability:3100/loki/api/v1/push"  # Assuming Loki is in the monitoring namespace
+    exporters {
+      prometheus {
+        endpoint = "0.0.0.0:8889"
+      }
+    }
 
-    service:
-      pipelines:
-        traces:
-          receivers: [ otlp ]
-          processors: [ batch ]
-          exporters: [ otlp ]
-        metrics:
-          receivers: [ otlp, prometheus ]
-          processors: [ batch ]
-          exporters: [ prometheus ]
-        logs:
-          receivers: [ otlp ]
-          processors: [ batch ]
-          exporters: [ loki ]
-    ALLOY_CONFIG: "/etc/alloy/config.yaml"
+    service {
+      pipelines {
+        metrics {
+          receivers = ["otlp", "prometheus"]
+          processors = ["batch"]
+          exporters = ["prometheus"]
+        }
+        traces {
+          receivers = ["otlp"]
+          processors = ["batch"]
+          exporters = []
+        }
+        logs {
+          receivers = ["otlp"]
+          processors = ["batch"]
+          exporters = []
+        }
+      }
+    } |
