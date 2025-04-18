@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: grafana-alloy
-          image: grafana/alloy:1.8.1
+          image: grafana/alloy:v1.8.1
           command:
             - "/bin/alloy run --stability.level=public-preview"
           ports:
