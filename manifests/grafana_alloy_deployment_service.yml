@@ -16,7 +16,10 @@ spec:
       containers:
         - name: grafana-alloy
           image: grafana/alloy:v1.8.1
-          args:
+          command:
+            - "/bin/sh"
+            - "-c"
+            - "/usr/bin/alloy"
             - "run"
             - "--stability.level public-preview"
             - "/etc/alloy/config.alloy"
