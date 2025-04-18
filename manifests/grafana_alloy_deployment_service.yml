@@ -17,7 +17,7 @@ spec:
         - name: grafana-alloy
           image: grafana/alloy:latest
           args:
-            - --stability.level=public-preview
+            - "run --stability.level=public-preview"
           ports:
             - containerPort: 4317  # OTLP gRPC
             - containerPort: 4318  # OTLP HTTP
