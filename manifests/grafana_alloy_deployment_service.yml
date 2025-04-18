@@ -14,20 +14,22 @@ spec:
         app: grafana-alloy
     spec:
       containers:
-      - name: grafana-alloy
-        image: grafana/alloy:latest
-        ports:
-        - containerPort: 4317  # OTLP gRPC
-        - containerPort: 4318  # OTLP HTTP
-        - containerPort: 8888  # Metrics
-        - containerPort: 8889  # Prometheus exporter
-        volumeMounts:
-        - name: config
-          mountPath: /etc/alloy
+        - name: grafana-alloy
+          image: grafana/alloy:latest
+          args:
+            - "--config=/etc/alloy/config.yaml"
+          ports:
+            - containerPort: 4317  # OTLP gRPC
+            - containerPort: 4318  # OTLP HTTP
+            - containerPort: 8888  # Metrics
+            - containerPort: 8889  # Prometheus exporter
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alloy
       volumes:
-      - name: config
-        configMap:
-          name: grafana-alloy-config
+        - name: config
+          configMap:
+            name: grafana-alloy-config
 ---
 apiVersion: v1
 kind: Service
@@ -38,15 +40,15 @@ spec:
   selector:
     app: grafana-alloy
   ports:
-  - name: otlp-grpc
-    port: 4317
-    targetPort: 4317
-  - name: otlp-http
-    port: 4318
-    targetPort: 4318
-  - name: metrics
-    port: 8888
-    targetPort: 8888
-  - name: prometheus
-    port: 8889
-    targetPort: 8889
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+    - name: metrics
+      port: 8888
+      targetPort: 8888
+    - name: prometheus
+      port: 8889
+      targetPort: 8889
