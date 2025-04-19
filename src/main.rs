@@ -29,7 +29,7 @@ async fn init() {
             opentelemetry_sdk::runtime::Tokio,
         )
         .with_resource(Resource::new(vec![KeyValue::new(
-            "service.name",
+            "resource.service.name",
             "inventory_service",
         )]))
         .build();
