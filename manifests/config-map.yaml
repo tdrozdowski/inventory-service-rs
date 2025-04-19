@@ -5,4 +5,4 @@ metadata:
   namespace: examples
 data:
   RUST_LOG: "debug"
-  OTLP_ENDPOINT: "grafana-alloy:4317"
+  OTLP_ENDPOINT: "http://grafana-alloy.examples:4317"
