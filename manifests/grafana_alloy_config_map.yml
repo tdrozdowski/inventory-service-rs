@@ -41,7 +41,7 @@ data:
     
     otelcol.exporter.otlp "default" {
         client {
-        endpoint = "http://tempo-ingester.observability:3100
+        endpoint = "tempo-distributor.observability:4317"
       }
     }
 
