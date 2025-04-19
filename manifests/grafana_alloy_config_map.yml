@@ -25,10 +25,7 @@ data:
       output {
         metrics = [otelcol.exporter.prometheus.local_metrics.input]
         logs    = [otelcol.exporter.loki.local_logs.input]
-        traces  = [
-                    otelcol.connector.servicegraph.default.input,
-                    otelcol.exporter.otlp.default.input
-                  ]
+        traces  = [otelcol.connector.servicegraph.default.input,otelcol.exporter.otlp.default.input]
       }
     }
     
@@ -40,7 +37,7 @@ data:
     }
     
     otelcol.exporter.otlp "default" {
-        client {
+      client {
         endpoint = "tempo-distributor.observability:4317"
       }
     }
