@@ -1,7 +1,7 @@
 ### Enable verbose logs
 ### @trace
 
-POST http://{{hostAndPort}}/{{pathPrefix}}api/v1/authorize
+POST http://{{hostAndPort}}/api/v1/authorize
 Content-Type: application/json
 
 {
@@ -14,21 +14,21 @@ Content-Type: application/json
 %}
 
 ###
-OPTIONS http://localhost:3000/api/v1/items?page_size=100
+OPTIONS http://{{hostAndPort}}/api/v1/items?page_size=100
 
 ###
 
-GET http://{{hostAndPort}}/{{pathPrefix}}api/v1/items?page_size=1
+GET http://{{hostAndPort}}/api/v1/items?page_size=10
 Authorization: Bearer {{access_token}}
 
 ###
 
-GET http://localhost:3000/api/v1/items/6f4bdd88-d12e-421a-bac7-92ed2d9035aa
+GET http://{{hostAndPort}}/api/v1/items/6f4bdd88-d12e-421a-bac7-92ed2d9035aa
 Authorization: Bearer {{access_token}}
 
 ###
 
-POST http://localhost:3000/api/v1/items
+POST http://{{hostAndPort}}/api/v1/items
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 
@@ -45,7 +45,7 @@ Authorization: Bearer {{access_token}}
 
 ###
 
-PUT http://localhost:3000/api/v1/items/{{new_item_id}}
+PUT http://{{hostAndPort}}/api/v1/items/{{new_item_id}}
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 
@@ -59,7 +59,7 @@ Authorization: Bearer {{access_token}}
 
 ###
 
-DELETE http://localhost:3000/api/v1/items/{{new_item_id}}
+DELETE http://{{hostAndPort}}/api/v1/items/{{new_item_id}}
 Authorization: Bearer {{access_token}}
 
 ###

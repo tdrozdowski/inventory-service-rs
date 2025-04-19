@@ -5,12 +5,21 @@ metadata:
   namespace: examples
   labels:
     app: inventory-service
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io.scheme: "http"
+    prometheus.io/path: "/metrics"
+    prometheus.io/port: "3001"
 spec:
-  type: NodePort
+  type: LoadBalancer
   ports:
     - name: http
       port: 80
       targetPort: 3000
+      protocol: TCP
+    - name: metrics
+      port: 3001
+      targetPort: 3001
       protocol: TCP
   selector:
     app: inventory-service

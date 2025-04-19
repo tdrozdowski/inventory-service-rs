@@ -5,6 +5,7 @@ metadata:
   namespace: examples
 spec:
   replicas: 1
+  revisionHistoryLimit: 0
   selector:
     matchLabels:
       app: inventory-service
@@ -12,12 +13,22 @@ spec:
     metadata:
       labels:
         app: inventory-service
+      annotations:
+        profiles.grafana.com/memory.scrape: "true"
+        profiles.grafana.com/memory.port: "8080"
+        profiles.grafana.com/cpu.scrape: "true"
+        profiles.grafana.com/cpu.port: "8080"
     spec:
       containers:
         - name: inventory-service-container
-          image: ghcr.io/tdrozdowski/inventory-service-rs:1.0.2
+          image: ghcr.io/tdrozdowski/inventory-service-rs:1.0.5
           ports:
-            - containerPort: 3000
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+            - name: metrics
+              containerPort: 3001
+              protocol: TCP
           livenessProbe:
             httpGet:
               port: 3000
@@ -46,6 +57,11 @@ spec:
                 configMapKeyRef:
                   name: inventory-service-config
                   key: RUST_LOG
+            - name: OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: inventory-service-config
+                  key: OTLP_ENDPOINT
           resources:
             limits:
               cpu: "500m"

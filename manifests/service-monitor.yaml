@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: inventory-service-metrics-servicemonitor
+  namespace: examples
+  labels:
+    app: inventory-service
+    release: prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: inventory-service
+  endpoints:
+    - port: metrics
+      interval: 15s
