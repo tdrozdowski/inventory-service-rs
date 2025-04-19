@@ -25,13 +25,23 @@ data:
       output {
         metrics = [otelcol.exporter.prometheus.local_metrics.input]
         logs    = [otelcol.exporter.loki.local_logs.input]
-        traces  = [otelcol.exporter.otlp.local_traces.input]
+        traces  = [
+                    otelcol.connector.servicegraph.default.input,
+                    otelcol.exporter.otlp.default.input
+                  ]
       }
     }
-
-    otelcol.exporter.otlp "local_traces" {
-      client {
-        endpoint = "tempo-ingester.observability:3100"
+    
+    otelcol.connector.servicegraph "default" {
+        dimensions = ["http.method", "http.target"]
+        output {
+        metrics = [otelcol.exporter.otlp.default.input]
+      }
+    }
+    
+    otelcol.exporter.otlp "default" {
+        client {
+        endpoint = "http://tempo-ingester.observability:3100
       }
     }
 
