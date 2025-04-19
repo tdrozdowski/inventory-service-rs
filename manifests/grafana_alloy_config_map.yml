@@ -31,7 +31,7 @@ data:
 
     otelcol.exporter.otlp "local_traces" {
       client {
-        endpoint = "otel-collector-traces.example.svc.cluster.local:4317"
+        endpoint = "tempo-ingester.observability:3100"
       }
     }
 
