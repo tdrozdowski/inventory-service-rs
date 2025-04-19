@@ -41,7 +41,7 @@ data:
 
     prometheus.remote_write "local_metrics" {
       endpoint {
-        url = "http:/prometheus-stack-kube-prom-prometheus.monitoring.local/api/v1/write"
+        url = "http://prometheus-stack-kube-prom-prometheus.monitoring.local/api/v1/write"
       }
     }
 
@@ -67,6 +67,6 @@ data:
     // Forwards profiles to Pyroscope
     pyroscope.write "backend" {
        endpoint {
-           url = "http://pyroscope:4040"
+           url = "http://pyroscope-ingester.pyroscope:4040"
        }
     }
