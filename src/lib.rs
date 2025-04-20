@@ -156,3 +156,5 @@ async fn track_metrics(req: Request, next: Next) -> impl IntoResponse {
 
     response
 }
+
+// add function to add profiling around each request; utilize pyroscope agent

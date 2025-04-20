@@ -20,7 +20,6 @@ async fn main() {
 async fn init() {
     let otlp_endpoint =
         std::env::var("OTLP_ENDPOINT").unwrap_or_else(|_| "http://localhost:4317".to_string());
-    let log_endpoint = otlp_endpoint.clone();
     let exporter = opentelemetry_otlp::SpanExporter::builder()
         .with_tonic()
         .with_endpoint(otlp_endpoint)
