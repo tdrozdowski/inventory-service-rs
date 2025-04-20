@@ -34,13 +34,13 @@ spec:
               port: 3000
               path: /status/healthz
             initialDelaySeconds: 5
-            periodSeconds: 10
+            periodSeconds: 300
           readinessProbe:
             httpGet:
               path: /status/readyz
               port: 3000
             initialDelaySeconds: 5
-            periodSeconds: 10
+            periodSeconds: 300
           env:
             - name: DATABASE_URL
               valueFrom:
