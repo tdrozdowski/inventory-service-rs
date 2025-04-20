@@ -16,6 +16,9 @@ use axum::routing::get;
 use axum::{middleware, Router};
 use axum_prometheus::metrics;
 use axum_prometheus::metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle};
+use pyroscope::pyroscope::{PyroscopeAgentReady, PyroscopeAgentRunning, PyroscopeAgentState};
+use pyroscope::PyroscopeAgent;
+use pyroscope_pprofrs::{pprof_backend, PprofConfig};
 use sqlx::PgPool;
 use std::future::ready;
 use std::sync::Arc;
@@ -95,6 +98,7 @@ pub async fn start_server() {
         .merge(inventory::routes::api_routes_with_status_routes())
         .with_state(app_context)
         .route_layer(middleware::from_fn(track_metrics))
+        .route_layer(middleware::from_fn(profile_requests))
         .layer(
             TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {
                 // Log the matched route's path (with placeholders not filled in).
@@ -158,3 +162,31 @@ async fn track_metrics(req: Request, next: Next) -> impl IntoResponse {
 }
 
 // add function to add profiling around each request; utilize pyroscope agent
+async fn profile_requests(req: Request, next: Next) -> impl IntoResponse {
+    // Profiling setup
+    let pprof_config = PprofConfig::new().sample_rate(100);
+    let backend_impl = pprof_backend(pprof_config);
+
+    // Configure Pyroscope Agent
+    let pyro_endpoint = std::env::var("PYROSCOPE_ENDPOINT")
+        .unwrap_or_else(|_| "http://pyroscope-ingester.pyroscope:4040".to_string());
+    let agent = PyroscopeAgent::builder(pyro_endpoint, "inventory_service".to_string())
+        .backend(backend_impl)
+        .build()
+        .expect("Failed to create Pyroscope agent");
+
+    // Start the Pyroscope agent
+    let started_agent = agent.start().expect("Failed to start Pyroscope agent");
+
+    // Start profiling for this request // Process request
+    let response = next.run(req).await;
+
+    // Stop profiling after the request is completed
+    let agent_stopped = started_agent
+        .stop()
+        .expect("Failed to stop Pyroscope session");
+
+    agent_stopped.shutdown();
+
+    response
+}

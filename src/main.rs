@@ -5,11 +5,15 @@ use opentelemetry::KeyValue;
 use opentelemetry_appender_tracing::layer;
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::Resource;
+use pyroscope::pyroscope::{PyroscopeAgentReady, PyroscopeAgentState};
 use pyroscope::PyroscopeAgent;
 use pyroscope_pprofrs::{pprof_backend, PprofConfig};
+use std::cell::OnceCell;
+use std::sync::Arc;
 use tracing::info;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{EnvFilter, Layer};
 
 #[tokio::main]
 async fn main() {
@@ -56,8 +60,14 @@ async fn init() {
                 .build(),
         )
         .build();
-
-    let otel_logger_layer = layer::OpenTelemetryTracingBridge::new(&log_provider); //.with_filter(filter_otel);
+    let filter_otel = EnvFilter::new("info")
+        .add_directive("hyper=off".parse().unwrap())
+        .add_directive("opentelemetry=off".parse().unwrap())
+        .add_directive("tonic=off".parse().unwrap())
+        .add_directive("h2=off".parse().unwrap())
+        .add_directive("reqwest=off".parse().unwrap());
+    let otel_logger_layer =
+        layer::OpenTelemetryTracingBridge::new(&log_provider).with_filter(filter_otel);
 
     // Create a tracing layer for exporting traces
     let otel_tracer_layer = tracing_opentelemetry::layer().with_tracer(tracer);
@@ -72,18 +82,6 @@ async fn init() {
         .with(otel_tracer_layer) // Add OTLP trace layer
         .with(otel_logger_layer) // Add OTLP log layer
         .init();
-
-    // Profiling setup
-    let pprof_config = PprofConfig::new().sample_rate(100);
-    let backend_impl = pprof_backend(pprof_config);
-
-    // Configure Pyroscope Agent
-    let pyro_endpoint = std::env::var("PYROSCOPE_ENDPOINT")
-        .unwrap_or_else(|_| "http://pyroscope-ingester.pyroscope:4040".to_string());
-    let agent = PyroscopeAgent::builder(pyro_endpoint.as_str(), "inventory_service")
-        .backend(backend_impl)
-        .build()
-        .expect("Failed to create Pyroscope agent");
 
     info!("Server initialization started...");
 }
