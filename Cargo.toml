@@ -36,3 +36,5 @@ uuid = { version = "1.6.1", features = ["serde", "v4"] }
 utoipa = { version = "5.0.0-alpha.2", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-redoc = { version = "4.0.1-alpha.0", features = ["axum"] }
 rand = "0.8.5"
+pyroscope = "0.5.8"
+pyroscope_pprofrs = "0.2.10"
