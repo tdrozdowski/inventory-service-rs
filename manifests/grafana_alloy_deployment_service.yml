@@ -20,7 +20,7 @@ spec:
           command:
             - "/bin/sh"
             - "-c"
-            - "/usr/bin/alloy run --stability.level public-preview /etc/alloy/config.alloy"
+            - "/usr/bin/alloy run --stability.level experimental /etc/alloy/config.alloy"
           ports:
             - containerPort: 4317  # OTLP gRPC
             - containerPort: 4318  # OTLP HTTP
