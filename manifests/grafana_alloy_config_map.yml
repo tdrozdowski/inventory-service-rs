@@ -36,7 +36,7 @@ data:
     otelcol.connector.servicegraph "default" {
         dimensions = ["http.method", "http.target"]
         output {
-          metrics = [otelcol.exporter.otlp.default.input]
+          metrics = [otelcol.exporter.prometheus.local_metrics.input]
         }
     }
     
@@ -58,12 +58,12 @@ data:
         }
       }
     
-        metrics_flush_interval = "15s"
+      metrics_flush_interval = "15s"
     
-        namespace = "traces_spanmetrics"
+      namespace = "traces_spanmetrics"
     
-        output {
-        metrics = [otelcol.exporter.otlp.default.input]
+      output {
+        metrics = [otelcol.exporter.prometheus.local_metrics.input]
       }
     }
     
