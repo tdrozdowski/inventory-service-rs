@@ -5,11 +5,6 @@ metadata:
   namespace: examples
 data:
   config.alloy: |
-    
-    otelcol.exporter.logging "debug" {
-      verbosity = "detailed"
-    }
-    
     otelcol.receiver.otlp "example" {
       grpc {
         endpoint = "0.0.0.0:4317"
@@ -25,12 +20,16 @@ data:
         traces  = [otelcol.processor.batch.example.input]
       }
     }
+    
+    otelcol.exporter.logging "debug" {
+      verbosity = "detailed"
+    }
 
     otelcol.processor.batch "example" {
       output {
         metrics = [otelcol.exporter.prometheus.local_metrics.input]
         logs    = [otelcol.exporter.loki.local_logs.input]
-        traces  = [otelcol.connector.servicegraph.default.input,otelcol.connector.spanmetrics.default.input,otelcol.exporter.otlp.default.input, otelcol.exporter.logging.debug.input]
+        traces  = [otelcol.connector.servicegraph.default.input,otelcol.connector.spanmetrics.default.input,otelcol.exporter.otlp.default.input,otelcol.exporter.logging.debug.input]
       }
     }
     
