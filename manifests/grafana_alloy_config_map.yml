@@ -21,7 +21,7 @@ data:
       }
     }
     
-    otelcol.exporter.logging "debug" {
+    otelcol.exporter.debug "default" {
       verbosity = "detailed"
     }
 
@@ -29,7 +29,7 @@ data:
       output {
         metrics = [otelcol.exporter.prometheus.local_metrics.input]
         logs    = [otelcol.exporter.loki.local_logs.input]
-        traces  = [otelcol.connector.servicegraph.default.input,otelcol.connector.spanmetrics.default.input,otelcol.exporter.otlp.default.input,otelcol.exporter.logging.debug.input]
+        traces  = [otelcol.connector.servicegraph.default.input,otelcol.connector.spanmetrics.default.input,otelcol.exporter.otlp.default.input,otelcol.exporter.debug.default.input]
       }
     }
     
