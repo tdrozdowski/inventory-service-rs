@@ -85,7 +85,7 @@ data:
 
     prometheus.remote_write "local_metrics" {
       endpoint {
-        url = "http://prometheus-stack-kube-prom-prometheus.monitoring:9090/api/v1/write"
+        url = "http://prometheus-pushgateway-1745185153.monitoring:9091"
       }
     }
 
