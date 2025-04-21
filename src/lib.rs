@@ -16,6 +16,7 @@ use axum::routing::get;
 use axum::{middleware, Router};
 use axum_prometheus::metrics;
 use axum_prometheus::metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle};
+use once_cell::sync::OnceCell;
 use pyroscope::pyroscope::{PyroscopeAgentReady, PyroscopeAgentRunning, PyroscopeAgentState};
 use pyroscope::PyroscopeAgent;
 use pyroscope_pprofrs::{pprof_backend, PprofConfig};
@@ -24,7 +25,7 @@ use std::future::ready;
 use std::sync::Arc;
 use std::time::Instant;
 use tower_http::trace::TraceLayer;
-use tracing::{info, info_span};
+use tracing::{debug, info, info_span};
 use utoipa::OpenApi;
 use utoipa_redoc::{Redoc, Servable};
 
@@ -91,6 +92,19 @@ fn metrics_app() -> Router {
 }
 
 pub async fn start_server() {
+    info!("Initializing Pyroscope agent");
+    let pprof_config = PprofConfig::new().sample_rate(100);
+    let backend_impl = pprof_backend(pprof_config);
+
+    let pyro_endpoint = std::env::var("PYROSCOPE_ENDPOINT")
+        .unwrap_or_else(|_| "http://pyroscope-ingester.pyroscope:4040".to_string());
+    debug!("Pyroscope endpoint: {}", pyro_endpoint.clone());
+    let agent = PyroscopeAgent::builder(pyro_endpoint, "inventory_service".to_string())
+        .backend(backend_impl)
+        .build()
+        .expect("Failed to create Pyroscope agent");
+    let running_agent = agent.start().expect("Failed to start Pyroscope agent");
+    // TODO - sort out how to add tags to routes
     let app_context = AppContext::new().await;
     let app = Router::new()
         .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
@@ -98,7 +112,6 @@ pub async fn start_server() {
         .merge(inventory::routes::api_routes_with_status_routes())
         .with_state(app_context)
         .route_layer(middleware::from_fn(track_metrics))
-        .route_layer(middleware::from_fn(profile_requests))
         .layer(
             TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {
                 // Log the matched route's path (with placeholders not filled in).
@@ -121,6 +134,8 @@ pub async fn start_server() {
         listener.local_addr().unwrap()
     );
     axum::serve(listener, app).await.unwrap();
+    let stopped_agent = running_agent.stop().unwrap();
+    stopped_agent.shutdown();
 }
 
 pub async fn start_metrics_server() {
@@ -153,40 +168,11 @@ async fn track_metrics(req: Request, next: Next) -> impl IntoResponse {
         ("method", method.to_string()),
         ("path", path),
         ("status", status),
+        ("service", "inventory_service".to_string()),
     ];
 
     metrics::counter!("http_requests_total", &labels).increment(1);
     metrics::histogram!("http_requests_duration_seconds", &labels).record(latency);
-
-    response
-}
-
-// add function to add profiling around each request; utilize pyroscope agent
-async fn profile_requests(req: Request, next: Next) -> impl IntoResponse {
-    // Profiling setup
-    let pprof_config = PprofConfig::new().sample_rate(100);
-    let backend_impl = pprof_backend(pprof_config);
-
-    // Configure Pyroscope Agent
-    let pyro_endpoint = std::env::var("PYROSCOPE_ENDPOINT")
-        .unwrap_or_else(|_| "http://pyroscope-ingester.pyroscope:4040".to_string());
-    let agent = PyroscopeAgent::builder(pyro_endpoint, "inventory_service".to_string())
-        .backend(backend_impl)
-        .build()
-        .expect("Failed to create Pyroscope agent");
-
-    // Start the Pyroscope agent
-    let started_agent = agent.start().expect("Failed to start Pyroscope agent");
-
-    // Start profiling for this request // Process request
-    let response = next.run(req).await;
-
-    // Stop profiling after the request is completed
-    let agent_stopped = started_agent
-        .stop()
-        .expect("Failed to stop Pyroscope session");
-
-    agent_stopped.shutdown();
 
     response
 }
