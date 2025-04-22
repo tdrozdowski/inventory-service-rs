@@ -27,7 +27,7 @@ pub fn person_routes() -> Router<AppContext> {
                 .allow_methods([Method::GET, Method::POST]),
         )
         .route(
-            "/:id",
+            "/{id}",
             axum::routing::get(person::get_person_by_id).delete(person::delete_person),
         )
         .layer(
@@ -49,7 +49,7 @@ pub fn item_routes() -> Router<AppContext> {
                 .allow_methods([Method::GET, Method::POST]),
         )
         .route(
-            "/:id",
+            "/{id}",
             axum::routing::get(item::get_item_by_id)
                 .delete(item::delete_item)
                 .put(item::update_item),
@@ -73,21 +73,21 @@ fn invoice_routes() -> Router<AppContext> {
                 .allow_methods([Method::GET, Method::POST]),
         )
         .route(
-            "/:id",
-            axum::routing::get(invoice::get_invoice_by_id)
+            "/{id}",
+            axum::routing::get(invoice::get_invoice_by_id_with_items)
                 .delete(invoice::delete_invoice)
                 .put(invoice::update_invoice),
         )
         .route(
-            "/:id/items",
+            "/{id}/items",
             axum::routing::post(invoice::add_invoice_items),
         )
         .route(
-            "/:invoice_id/items/:item_id",
+            "/{invoice_id}/items/{item_id}",
             axum::routing::delete(invoice::remove_invoice_item),
         )
         .route(
-            "/users/:id",
+            "/users/{id}",
             axum::routing::get(invoice::get_invoices_by_user),
         )
         .layer(
@@ -207,7 +207,7 @@ mod tests {
             .returning(|_, _| Box::pin(async move { Ok(vec![Person::default()]) }));
         let app = app_with_live_mock_person_service(mock_person_service).await;
         let request = Request::builder()
-            .uri("/persons")
+            .uri("/persons?page_size=10")
             .header(http::header::AUTHORIZATION, mock_token())
             .method(http::Method::GET)
             .body(Body::empty())
@@ -296,7 +296,7 @@ mod tests {
             .returning(|_| Box::pin(async move { Ok(vec![]) }));
         let app = app_v1_with_live_mock_item_service(mock_item_service).await;
         let request = Request::builder()
-            .uri("/api/v1/items")
+            .uri("/api/v1/items?page_size=10")
             .header(http::header::AUTHORIZATION, mock_token())
             .method(http::Method::GET)
             .body(Body::empty())
@@ -313,7 +313,7 @@ mod tests {
             .returning(|_| Box::pin(async move { Ok(vec![]) }));
         let app = app_with_live_mock_item_service(mock_item_service).await;
         let request = Request::builder()
-            .uri("/items")
+            .uri("/items?page_size=10")
             .header(http::header::AUTHORIZATION, mock_token())
             .method(http::Method::GET)
             .body(Body::empty())
@@ -429,7 +429,7 @@ mod tests {
             .returning(|_, _| Box::pin(async move { Ok(Default::default()) }));
         let app = app_v1_with_live_mock_invoice_service(mock_invoice_service).await;
         let request = Request::builder()
-            .uri("/api/v1/invoices/2b1b425e-dee2-4227-8d94-f470a0ce0cd0")
+            .uri("/api/v1/invoices/2b1b425e-dee2-4227-8d94-f470a0ce0cd0?with_items=true")
             .header(http::header::AUTHORIZATION, mock_token())
             .method(http::Method::GET)
             .body(Body::empty())
@@ -568,7 +568,7 @@ mod tests {
             .returning(|_| Box::pin(async move { Ok(vec![]) }));
         let app = app_v1_with_live_mock_invoice_service(mock_invoice_service).await;
         let request = Request::builder()
-            .uri("/api/v1/invoices")
+            .uri("/api/v1/invoices?page_size=10")
             .header(http::header::AUTHORIZATION, mock_token())
             .method(http::Method::GET)
             .body(Body::empty())

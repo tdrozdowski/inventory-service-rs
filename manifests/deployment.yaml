@@ -68,7 +68,6 @@ spec:
                 configMapKeyRef:
                   name: inventory-service-config
                   key: PYROSCOPE_ENDPOINT
-
           resources:
             limits:
               cpu: "500m"

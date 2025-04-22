@@ -22,8 +22,8 @@ pub struct ItemApi;
 #[utoipa::path(
     get,
     path = "",
-    summary = "Get all items",
-    description = "Get all items in the inventory",
+    summary = "Get all items with pagination",
+    description = "Get all items in the inventory with pagination",
     params(
        Pagination,
        ("Authorization", Header, description="Bearer token")
@@ -39,19 +39,40 @@ pub struct ItemApi;
 )]
 pub async fn get_items(
     claims: Claims,
-    maybe_pagination_query: Option<Query<Pagination>>,
+    pagination_query: Query<Pagination>,
     State(app_context): State<AppContext>,
 ) -> Result<Json<Vec<Item>>, ServiceError> {
-    let pagination = if let Some(pagination_query) = maybe_pagination_query {
-        Some(pagination_query.0)
-    } else {
-        None
-    };
+    let pagination = Some(pagination_query.0);
     app_context
         .item_service
         .get_all_items(pagination)
         .await
         .map(Json)
+}
+#[axum_macros::debug_handler]
+#[instrument]
+#[utoipa::path(
+    get,
+    path = "",
+    summary = "Get all items",
+    description = "Get all items in the inventory",
+    params(
+       ("Authorization", Header, description="Bearer token")
+    ),
+    responses(
+       (status = 200, description = "Items returned", body=[Item]),
+       (status = 400, description = "Bad Request", body=ApiError),
+       (status = 401, description = "Unauthorized", body=ApiError),
+       (status = 403, description = "Forbidden", body=ApiError),
+       (status = 500, description = "Internal Server Error", body=ApiError)
+
+    )
+)]
+pub async fn get_all_items(
+    claims: Claims,
+    State(app_context): State<AppContext>,
+) -> Result<Json<Vec<Item>>, ServiceError> {
+    app_context.item_service.get_all_items(None).await.map(Json)
 }
 
 #[axum_macros::debug_handler]
@@ -215,7 +236,7 @@ mod tests {
             MockInvoiceService::new(),
         );
         let no_pagination: Option<Query<Pagination>> = None;
-        let result = super::get_items(Claims::default(), no_pagination, State(app_context)).await;
+        let result = super::get_all_items(Claims::default(), State(app_context)).await;
         assert!(result.is_ok());
         let items = result.unwrap().0;
         assert_eq!(items.len(), 1);
@@ -385,10 +406,10 @@ mod tests {
         );
         let result = super::get_items(
             Claims::default(),
-            Some(axum::extract::Query(super::Pagination {
+            axum::extract::Query(super::Pagination {
                 last_id: None,
                 page_size: 10,
-            })),
+            }),
             State(app_context),
         )
         .await;

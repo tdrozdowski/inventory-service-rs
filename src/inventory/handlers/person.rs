@@ -25,8 +25,8 @@ pub struct PersonApi;
 #[utoipa::path(
     get,
     path = "",
-    summary = "Get a list of persons",
-    description = "Returns a list of persons",
+    summary = "Get a list of persons with pagination",
+    description = "Returns a list of persons with pagination",
     params(
         Pagination,
         ("Authorization", Header, description="Bearer token"),
@@ -42,14 +42,42 @@ pub struct PersonApi;
 #[instrument]
 pub async fn get_persons(
     claims: Claims,
-    pagination: Option<Query<Pagination>>,
+    pagination: Query<Pagination>,
     State(app_context): State<AppContext>,
 ) -> Result<Json<Vec<Person>>, ServiceError> {
-    let Query(pagination) = pagination.unwrap_or_default();
     debug!("Claims: {:?}", claims);
     app_context
         .person_service
-        .get_persons(pagination.last_id, pagination.page_size) // TODO - refactor service interface to accept Option<Pagination>
+        .get_persons(pagination.last_id, pagination.page_size)
+        .await
+        .map(Json)
+}
+#[axum_macros::debug_handler]
+#[utoipa::path(
+    get,
+    path = "",
+    summary = "Get a list of persons with no pagination",
+    description = "Returns a list of persons with no pagination",
+    params(
+        ("Authorization", Header, description="Bearer token"),
+    ),
+    responses(
+        (status = 200, description = "Returns a list of persons", body=[Person]),
+        (status = 400, description = "Bad request", body=ApiError),
+        (status = 401, description = "Unauthorized", body=ApiError),
+        (status = 403, description = "Forbidden", body=ApiError),
+        (status = 500, description = "Internal server error", body=ApiError),
+    ),
+)]
+#[instrument]
+pub async fn get_all_persons(
+    claims: Claims,
+    State(app_context): State<AppContext>,
+) -> Result<Json<Vec<Person>>, ServiceError> {
+    debug!("Claims: {:?}", claims);
+    app_context
+        .person_service
+        .get_persons(None, i64::MAX)
         .await
         .map(Json)
 }
@@ -218,7 +246,7 @@ mod tests {
             MockItemService::new(),
             MockInvoiceService::new(),
         );
-        let maybe_pagination = Some(Query(Pagination::default()));
+        let maybe_pagination = Query(Pagination::default());
         let result = super::get_persons(mock_claims(), maybe_pagination, State(app_context)).await;
         assert!(result.is_ok());
         let persons = result.unwrap().0;

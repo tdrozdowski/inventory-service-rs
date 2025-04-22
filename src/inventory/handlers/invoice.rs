@@ -56,14 +56,10 @@ pub struct InvoiceApi;
 )]
 pub async fn get_invoices(
     claims: Claims,
-    maybe_pagination_query: Option<Query<Pagination>>,
+    pagination_query: Query<Pagination>,
     State(app_context): State<AppContext>,
 ) -> Result<Json<Vec<Invoice>>, ServiceError> {
-    let pagination = if let Some(pagination_query) = maybe_pagination_query {
-        Some(pagination_query.0)
-    } else {
-        None
-    };
+    let pagination = Some(pagination_query.0);
     app_context
         .invoice_service
         .list_all_invoices(pagination)
@@ -74,9 +70,37 @@ pub async fn get_invoices(
 #[axum_macros::debug_handler]
 #[instrument]
 #[utoipa::path(
+    get,
+    path = "",
+    summary = "List all invoices",
+    description = "List all invoices",
+    params(
+      ("Authorization", Header, description = "Bearer token"),
+    ),
+    responses(
+      (status = 200, description = "List of invoices", body=[Invoice]),
+      (status = 401, description = "Unauthorized", body =ApiError),
+      (status = 403, description = "Forbidden", body = ApiError),
+      (status = 500, description = "Internal Server Error", body = ApiError),
+    )
+)]
+pub async fn get_all_invoices(
+    claims: Claims,
+    State(app_context): State<AppContext>,
+) -> Result<Json<Vec<Invoice>>, ServiceError> {
+    app_context
+        .invoice_service
+        .list_all_invoices(None)
+        .await
+        .map(Json)
+}
+
+#[axum_macros::debug_handler]
+#[instrument]
+#[utoipa::path(
    get,
    path = "/{invoice_id}",
-   summary = "Get an invoice by id",
+   summary = "Get an invoice by id with or without items in the response",
    description = "Get an invoice by id (uuid)",
    params(
       ("invoice_id", Path, description = "Invoice id (uuid)"),
@@ -91,22 +115,51 @@ pub async fn get_invoices(
       (status = 500, description = "Internal Server Error", body = ApiError),
    )
 )]
-pub async fn get_invoice_by_id(
+pub async fn get_invoice_by_id_with_items(
     claims: Claims,
     Path(invoice_id): Path<Uuid>,
-    with_items: Option<Query<WithItemsQuery>>,
+    with_items: Query<WithItemsQuery>,
     State(app_context): State<AppContext>,
 ) -> Result<Json<Invoice>, ServiceError> {
-    let with_items = if let Some(with_items_query) = with_items {
-        with_items_query.0.with_items
-    } else {
-        false
-    };
+    let with_items = with_items.0.with_items;
     app_context
         .invoice_service
         .get_invoice(invoice_id, with_items)
         .await
         .map(Json)
+}
+
+#[axum_macros::debug_handler]
+#[instrument]
+#[utoipa::path(
+    get,
+    path = "/{invoice_id}",
+    summary = "Get an invoice by id",
+    description = "Get an invoice by id (uuid)",
+    params(
+      ("invoice_id", Path, description = "Invoice id (uuid)"),
+      ("Authorization", Header, description = "Bearer token"),
+    ),
+    responses(
+      (status = 200, description = "Invoice", body = Invoice),
+      (status = 401, description = "Unauthorized", body = ApiError),
+      (status = 403, description = "Forbidden", body = ApiError),
+      (status = 404, description = "Not Found", body = ApiError),
+      (status = 500, description = "Internal Server Error", body = ApiError),
+    )
+)]
+pub async fn get_invoice_by_id(
+    claims: Claims,
+    Path(invoice_id): Path<Uuid>,
+    State(app_context): State<AppContext>,
+) -> Result<Json<Invoice>, ServiceError> {
+    get_invoice_by_id_with_items(
+        claims,
+        Path(invoice_id),
+        Query(WithItemsQuery { with_items: false }),
+        State(app_context),
+    )
+    .await
 }
 
 #[axum_macros::debug_handler]
@@ -325,7 +378,8 @@ pub async fn get_invoices_by_user(
 #[cfg(test)]
 mod tests {
     use crate::inventory::handlers::invoice::{
-        add_invoice_items, get_invoice_by_id, get_invoices, get_invoices_by_user, update_invoice,
+        add_invoice_items, get_all_invoices, get_invoice_by_id, get_invoice_by_id_with_items,
+        get_invoices, get_invoices_by_user, update_invoice,
     };
     use crate::inventory::model::{
         CreateInvoiceRequest, DeleteResults, Invoice, ServiceResults, WithItemsQuery,
@@ -379,7 +433,7 @@ mod tests {
             mock_invoice_service,
         );
         let claims = mock_claims();
-        let response = get_invoices(claims, None, State(app_context)).await;
+        let response = get_all_invoices(claims, State(app_context)).await;
         assert!(response.is_ok());
         let response = response.unwrap();
         assert_eq!(response.0.len(), 1);
@@ -402,8 +456,7 @@ mod tests {
             mock_invoice_service,
         );
         let claims = mock_claims();
-        let response =
-            get_invoice_by_id(claims, Path(Uuid::new_v4()), None, State(app_context)).await;
+        let response = get_invoice_by_id(claims, Path(Uuid::new_v4()), State(app_context)).await;
         assert!(response.is_ok());
         let response = response.unwrap();
         assert_eq!(response.0.id, expected_invoice.id);
@@ -428,10 +481,10 @@ mod tests {
         );
         let claims = mock_claims();
         let item_query = WithItemsQuery { with_items: true };
-        let response = get_invoice_by_id(
+        let response = get_invoice_by_id_with_items(
             claims,
             Path(Uuid::new_v4()),
-            Some(Query(item_query)),
+            Query(item_query),
             State(app_context),
         )
         .await;
@@ -459,10 +512,10 @@ mod tests {
         );
         let claims = mock_claims();
         let item_query = WithItemsQuery { with_items: false };
-        let response = get_invoice_by_id(
+        let response = get_invoice_by_id_with_items(
             claims,
             Path(Uuid::new_v4()),
-            Some(Query(item_query)),
+            Query(item_query),
             State(app_context),
         )
         .await;
@@ -717,8 +770,7 @@ mod tests {
             mock_invoice_service,
         );
         let claims = mock_claims();
-        let response =
-            get_invoice_by_id(claims, Path(Uuid::new_v4()), None, State(app_context)).await;
+        let response = get_invoice_by_id(claims, Path(Uuid::new_v4()), State(app_context)).await;
         assert!(response.is_err());
         let response = response.unwrap_err();
         match response {
