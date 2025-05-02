@@ -5,10 +5,12 @@ namespace: examples
 
 resources:
   - ../../base
+  - alloy/grafana_alloy_config_map.yml
+  - alloy/grafana_alloy_deployment_service.yml
+  - alloy/grafana_alloy_service_monitor.yml
   - secrets/sqlx-db-sealed-secret.yaml
   - secrets/inventory-service-jwt-sealed-secret.yaml
   - secrets/ghcr-login-sealed-secret.yaml
-
 # You can add environment-specific patches or configurations here if needed
 # patches:
 #   - path: patch.yaml

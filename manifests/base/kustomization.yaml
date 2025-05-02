@@ -6,6 +6,7 @@ resources:
   - deployment.yaml
   - config-map.yaml
   - service-monitor.yaml
+  - sqlx-migrate-job.yml
 
 labels:
   - pairs:

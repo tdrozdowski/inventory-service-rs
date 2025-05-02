@@ -1,0 +1,116 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-alloy-config
+  namespace: examples
+data:
+  config.alloy: |
+    otelcol.receiver.otlp "example" {
+      grpc {
+        endpoint = "0.0.0.0:4317"
+      }
+
+      http {
+        endpoint = "0.0.0.0:4318"
+      }
+    
+      output {
+        metrics = [otelcol.processor.batch.example.input]
+        logs    = [otelcol.processor.batch.example.input]
+        traces  = [otelcol.processor.batch.example.input]
+      }
+    }
+    
+    otelcol.exporter.debug "default" {
+      verbosity = "detailed"
+    }
+
+    otelcol.processor.batch "example" {
+      output {
+        metrics = [otelcol.exporter.prometheus.local_metrics.input]
+        logs    = [otelcol.exporter.loki.local_logs.input]
+        traces  = [otelcol.connector.servicegraph.default.input,otelcol.connector.spanmetrics.default.input,otelcol.exporter.otlp.default.input,otelcol.exporter.debug.default.input]
+      }
+    }
+    
+    otelcol.connector.servicegraph "default" {
+        dimensions = ["http.method", "http.target"]
+        output {
+          metrics = [otelcol.exporter.prometheus.local_metrics.input]
+        }
+    }
+    
+    otelcol.connector.spanmetrics "default" {
+        dimension {
+        name = "http.method"
+        default = "GET"
+      }
+    
+        dimension {
+        name = "http.target"
+      }
+    
+        aggregation_temporality = "DELTA"
+    
+        histogram {
+        explicit {
+        buckets = ["50ms", "100ms", "250ms", "1s", "5s", "10s"]
+        }
+      }
+    
+      metrics_flush_interval = "15s"
+    
+      namespace = "traces_spanmetrics"
+    
+      output {
+        metrics = [otelcol.exporter.prometheus.local_metrics.input]
+      }
+    }
+    
+    otelcol.exporter.otlp "default" {
+      client {
+        endpoint = "tempo-distributor.observability:4317"
+        tls {
+              // The connection is insecure.
+              insecure = true
+              // Do not verify TLS certificates when connecting.
+              insecure_skip_verify = true
+        }
+      }
+    }
+
+    otelcol.exporter.prometheus "local_metrics" {
+      forward_to = [prometheus.remote_write.local_metrics.receiver]
+    }
+
+    prometheus.remote_write "local_metrics" {
+      endpoint {
+        url = "http://prometheus-stack-kube-prom-prometheus.monitoring:9090/api/v1/write"
+      }
+    }
+
+    otelcol.exporter.loki "local_logs" {
+      forward_to = [loki.write.local_logs.receiver]
+    }
+
+    loki.write "local_logs" {
+      endpoint {
+        url = "http://loki.loki:3100/loki/api/v1/push"
+      }
+    }
+    
+    // Receives profiles over HTTP
+    pyroscope.receive_http "default" {
+       http {
+           listen_address = "0.0.0.0"
+           listen_port = 9999
+       }
+       forward_to = [pyroscope.write.backend.receiver]
+    }
+
+    // Forwards profiles to Pyroscope
+    pyroscope.write "backend" {
+       endpoint {
+           url = "http://pyroscope-ingester.pyroscope:4040"
+       }
+    }
