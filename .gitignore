@@ -4,3 +4,4 @@
 .env-compose
 .env-migrate
 data
+*-extracted-secret.yaml

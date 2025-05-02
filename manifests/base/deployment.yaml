@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: inventory-service
-  namespace: examples
 spec:
   replicas: 1
   revisionHistoryLimit: 0
@@ -42,32 +41,13 @@ spec:
               port: 3000
             initialDelaySeconds: 5
             periodSeconds: 15
-          env:
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: sqlx-db-secret
-                  key: DATABASE_URL
-            - name: JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: inventory-service-jwt-secret
-                  key: JWT_SECRET
-            - name: RUST_LOG
-              valueFrom:
-                configMapKeyRef:
-                  name: inventory-service-config
-                  key: RUST_LOG
-            - name: OTLP_ENDPOINT
-              valueFrom:
-                configMapKeyRef:
-                  name: inventory-service-config
-                  key: OTLP_ENDPOINT
-            - name: PYROSCOPE_ENDPOINT
-              valueFrom:
-                configMapKeyRef:
-                  name: inventory-service-config
-                  key: PYROSCOPE_ENDPOINT
+          envFrom:
+            - configMapRef:
+                name: inventory-service-config
+            - secretRef:
+                name: sqlx-db-secret
+            - secretRef:
+                name: inventory-service-jwt-secret
           resources:
             limits:
               cpu: "500m"

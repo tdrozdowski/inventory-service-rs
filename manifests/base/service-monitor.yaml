@@ -1,15 +1,14 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: grafana-alloy-servicemonitor
-  namespace: examples
+  name: inventory-service-metrics-servicemonitor
   labels:
-    app: grafana-alloy
+    app: inventory-service
     release: prometheus-stack
 spec:
   selector:
     matchLabels:
-      app: grafana-alloy
+      app: inventory-service
   endpoints:
-    - port: prometheus
+    - port: metrics
       interval: 15s

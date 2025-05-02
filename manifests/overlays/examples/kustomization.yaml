@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: examples
+
+resources:
+  - ../../base
+  - secrets/sqlx-db-sealed-secret.yaml
+  - secrets/inventory-service-jwt-sealed-secret.yaml
+  - secrets/ghcr-login-sealed-secret.yaml
+
+# You can add environment-specific patches or configurations here if needed
+# patches:
+#   - path: patch.yaml
