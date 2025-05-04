@@ -5,12 +5,8 @@ use opentelemetry::KeyValue;
 use opentelemetry_appender_tracing::layer;
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::Resource;
-use pyroscope::pyroscope::{PyroscopeAgentReady, PyroscopeAgentState};
-use pyroscope::PyroscopeAgent;
-use pyroscope_pprofrs::{pprof_backend, PprofConfig};
-use std::cell::OnceCell;
-use std::sync::Arc;
-use tracing::info;
+use std::sync::{Arc, OnceLock};
+use tracing::{debug, info};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer};
@@ -27,6 +23,13 @@ async fn init() {
     let otlp_endpoint =
         std::env::var("OTLP_ENDPOINT").unwrap_or_else(|_| "http://localhost:4317".to_string());
 
+    // Service name configuration
+    let service_name =
+        std::env::var("SERVICE_NAME").unwrap_or_else(|_| "inventory_service_local".to_string());
+
+    // Pyroscope agent initialization has been removed to avoid conflicts with per-request profiling
+    // The per-request profiling is now handled in lib.rs via the profile_request middleware
+
     // Configure the OTLP trace exporter and tracer provider
     let trace_exporter = opentelemetry_otlp::SpanExporter::builder()
         .with_tonic() // Use gRPC transport
@@ -38,7 +41,7 @@ async fn init() {
         .with_batch_exporter(trace_exporter)
         .with_resource(
             Resource::builder()
-                .with_attribute(KeyValue::new("service.name", "inventory_service"))
+                .with_attribute(KeyValue::new("service.name", service_name.clone()))
                 .build(),
         )
         .build();
@@ -56,7 +59,7 @@ async fn init() {
         .with_batch_exporter(log_exporter)
         .with_resource(
             Resource::builder()
-                .with_attribute(KeyValue::new("service.name", "inventory_service"))
+                .with_attribute(KeyValue::new("service.name", service_name.clone()))
                 .build(),
         )
         .build();

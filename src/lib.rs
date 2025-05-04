@@ -20,6 +20,7 @@ use once_cell::sync::OnceCell;
 use pyroscope::pyroscope::{PyroscopeAgentReady, PyroscopeAgentRunning, PyroscopeAgentState};
 use pyroscope::PyroscopeAgent;
 use pyroscope_pprofrs::{pprof_backend, PprofConfig};
+use rand::Rng;
 use sqlx::PgPool;
 use std::future::ready;
 use std::sync::Arc;
@@ -92,18 +93,7 @@ fn metrics_app() -> Router {
 }
 
 pub async fn start_server() {
-    info!("Initializing Pyroscope agent");
-    let pprof_config = PprofConfig::new().sample_rate(100);
-    let backend_impl = pprof_backend(pprof_config);
-
-    let pyro_endpoint = std::env::var("PYROSCOPE_ENDPOINT")
-        .unwrap_or_else(|_| "http://pyroscope-ingester.pyroscope:4040".to_string());
-    debug!("Pyroscope endpoint: {}", pyro_endpoint.clone());
-    let agent = PyroscopeAgent::builder(pyro_endpoint, "inventory_service".to_string())
-        .backend(backend_impl)
-        .build()
-        .expect("Failed to create Pyroscope agent");
-    let running_agent = agent.start().expect("Failed to start Pyroscope agent");
+    info!("Server starting with sampled per-request Pyroscope profiling");
     // TODO - sort out how to add tags to routes
     let app_context = AppContext::new().await;
     let app = Router::new()
@@ -111,6 +101,7 @@ pub async fn start_server() {
         .nest("/api/v1/authorize", jwt::route())
         .merge(inventory::routes::api_routes_with_status_routes())
         .with_state(app_context)
+        .route_layer(middleware::from_fn(profile_request)) // Add pyroscope profiling middleware
         .route_layer(middleware::from_fn(track_metrics))
         .layer(
             TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {
@@ -134,8 +125,6 @@ pub async fn start_server() {
         listener.local_addr().unwrap()
     );
     axum::serve(listener, app).await.unwrap();
-    let stopped_agent = running_agent.stop().unwrap();
-    stopped_agent.shutdown();
 }
 
 pub async fn start_metrics_server() {
@@ -164,15 +153,82 @@ async fn track_metrics(req: Request, next: Next) -> impl IntoResponse {
     let latency = start.elapsed().as_secs_f64();
     let status = response.status().as_u16().to_string();
 
+    let service_name =
+        std::env::var("SERVICE_NAME").unwrap_or_else(|_| "inventory_service_local".to_string());
+
     let labels = [
         ("method", method.to_string()),
         ("path", path),
         ("status", status),
-        ("service", "inventory_service".to_string()),
+        ("service", service_name),
     ];
 
     metrics::counter!("http_requests_total", &labels).increment(1);
     metrics::histogram!("http_requests_duration_seconds", &labels).record(latency);
+
+    response
+}
+
+/// Middleware that profiles a small percentage of requests to reduce overhead
+/// while still providing useful profiling data.
+async fn profile_request(req: Request, next: Next) -> impl IntoResponse {
+    // Sample only a small percentage of requests (e.g., 5%)
+    // This significantly reduces the overhead of profiling
+    const SAMPLE_RATE: f64 = 0.05; // 5% sampling rate
+
+    let should_profile = rand::thread_rng().gen_bool(SAMPLE_RATE);
+
+    if !should_profile {
+        // Skip profiling for most requests
+        return next.run(req).await;
+    }
+
+    // Extract path and method for tagging the profile
+    let path = if let Some(matched_path) = req.extensions().get::<MatchedPath>() {
+        matched_path.as_str().to_owned()
+    } else {
+        req.uri().path().to_owned()
+    };
+    let method = req.method().to_string();
+
+    // Create a new pyroscope agent for this request
+    let pprof_config = PprofConfig::new().sample_rate(100);
+    let backend_impl = pprof_backend(pprof_config);
+
+    let pyro_endpoint = std::env::var("PYROSCOPE_ENDPOINT")
+        .unwrap_or_else(|_| "http://pyroscope-ingester.pyroscope:4040".to_string());
+
+    // Get service name from environment variable
+    let service_name =
+        std::env::var("SERVICE_NAME").unwrap_or_else(|_| "inventory_service_local".to_string());
+
+    // Create a unique profile name for this request
+    let profile_name = format!(
+        "{}.request.{}.{}",
+        service_name,
+        method,
+        path.replace('/', "_")
+    );
+
+    // Build and start the agent
+    let agent = PyroscopeAgent::builder(pyro_endpoint, profile_name)
+        .backend(backend_impl)
+        .tags(vec![
+            ("method", method.as_str()),
+            ("path", path.as_str()),
+            ("service", service_name.as_str()),
+        ])
+        .build()
+        .expect("Failed to create Pyroscope agent");
+
+    let running_agent = agent.start().expect("Failed to start Pyroscope agent");
+
+    // Process the request
+    let response = next.run(req).await;
+
+    // Stop the agent after the request is completed
+    let stopped_agent = running_agent.stop().unwrap();
+    stopped_agent.shutdown();
 
     response
 }

@@ -6,3 +6,4 @@ data:
   RUST_LOG: "debug"
   OTLP_ENDPOINT: "http://grafana-alloy.examples:4317"
   PYROSCOPE_ENDPOINT: "http://pyroscope-distributor.pyroscope:4040"
+  SERVICE_NAME: "inventory_service_rs"
