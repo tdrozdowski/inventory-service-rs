@@ -111,6 +111,6 @@ data:
     // Forwards profiles to Pyroscope
     pyroscope.write "backend" {
        endpoint {
-           url = "http://pyroscope-ingester.pyroscope:4040"
+           url = "http://pyroscope-1746333570.pyroscope:4040"
        }
     }

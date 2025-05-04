@@ -6,4 +6,6 @@ data:
   RUST_LOG: "debug"
   OTLP_ENDPOINT: "http://grafana-alloy.examples:4317"
   PYROSCOPE_ENDPOINT: "http://pyroscope-1746333570.pyroscope:4040"
+  # Optional: Set a tenant ID for Pyroscope multi-tenancy
+  # PYROSCOPE_TENANT_ID: "your-tenant-id"
   SERVICE_NAME: "inventory_service_rs"

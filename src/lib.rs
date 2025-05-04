@@ -25,6 +25,10 @@ use sqlx::PgPool;
 use std::future::ready;
 use std::sync::Arc;
 use std::time::Instant;
+
+// Global PyroscopeAgent instance
+pub static PYROSCOPE_AGENT: OnceCell<PyroscopeAgent<PyroscopeAgentRunning>> = OnceCell::new();
+
 use tower_http::trace::TraceLayer;
 use tracing::{debug, info, info_span};
 use utoipa::OpenApi;
@@ -93,7 +97,7 @@ fn metrics_app() -> Router {
 }
 
 pub async fn start_server() {
-    info!("Server starting with sampled per-request Pyroscope profiling");
+    info!("Server starting with global Pyroscope agent");
     // TODO - sort out how to add tags to routes
     let app_context = AppContext::new().await;
     let app = Router::new()
@@ -169,12 +173,12 @@ async fn track_metrics(req: Request, next: Next) -> impl IntoResponse {
     response
 }
 
-/// Middleware that profiles a small percentage of requests to reduce overhead
-/// while still providing useful profiling data.
+/// Middleware that profiles a small percentage of requests using the global Pyroscope agent.
+/// This uses the global agent initialized in main.rs instead of creating a new one for each request.
 async fn profile_request(req: Request, next: Next) -> impl IntoResponse {
     // Sample only a small percentage of requests (e.g., 5%)
     // This significantly reduces the overhead of profiling
-    const SAMPLE_RATE: f64 = 0.05; // 5% sampling rate
+    const SAMPLE_RATE: f64 = 1.00; // 5% sampling rate
 
     let should_profile = rand::thread_rng().gen_bool(SAMPLE_RATE);
 
@@ -183,52 +187,34 @@ async fn profile_request(req: Request, next: Next) -> impl IntoResponse {
         return next.run(req).await;
     }
 
-    // Extract path and method for tagging the profile
+    // Check if the global agent is initialized
+    let agent = match PYROSCOPE_AGENT.get() {
+        Some(agent) => agent,
+        None => {
+            debug!("Global Pyroscope agent not initialized, skipping profiling");
+            return next.run(req).await;
+        }
+    };
+
+    // Extract the request path
     let path = if let Some(matched_path) = req.extensions().get::<MatchedPath>() {
         matched_path.as_str().to_owned()
     } else {
         req.uri().path().to_owned()
     };
-    let method = req.method().to_string();
 
-    // Create a new pyroscope agent for this request
-    let pprof_config = PprofConfig::new().sample_rate(100);
-    let backend_impl = pprof_backend(pprof_config);
+    debug!("Profiling request: {}", path.clone());
+    // Get tag_wrapper from the agent
+    let (add_tag, remove_tag) = agent.tag_wrapper();
 
-    let pyro_endpoint = std::env::var("PYROSCOPE_ENDPOINT")
-        .unwrap_or_else(|_| "http://pyroscope-ingester.pyroscope:4040".to_string());
-
-    // Get service name from environment variable
-    let service_name =
-        std::env::var("SERVICE_NAME").unwrap_or_else(|_| "inventory_service_local".to_string());
-
-    // Create a unique profile name for this request
-    let profile_name = format!(
-        "{}.request.{}.{}",
-        service_name,
-        method,
-        path.replace('/', "_")
-    );
-
-    // Build and start the agent
-    let agent = PyroscopeAgent::builder(pyro_endpoint, profile_name)
-        .backend(backend_impl)
-        .tags(vec![
-            ("method", method.as_str()),
-            ("path", path.as_str()),
-            ("service", service_name.as_str()),
-        ])
-        .build()
-        .expect("Failed to create Pyroscope agent");
-
-    let running_agent = agent.start().expect("Failed to start Pyroscope agent");
+    // Add the request_path tag
+    add_tag("request_path".to_string(), path.clone());
 
     // Process the request
     let response = next.run(req).await;
 
-    // Stop the agent after the request is completed
-    let stopped_agent = running_agent.stop().unwrap();
-    stopped_agent.shutdown();
+    // Remove the request_path tag
+    remove_tag("request_path".to_string(), path);
 
     response
 }
