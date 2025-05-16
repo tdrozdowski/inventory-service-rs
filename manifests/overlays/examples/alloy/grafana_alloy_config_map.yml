@@ -122,7 +122,7 @@ data:
           __path__  = "/var/log/syslog",
           job       = "node/syslog",
           node_name = sys.env("HOSTNAME"),
-          cluster   = <CLUSTER_NAME>,
+          cluster   = microk8s-lab1,
       }]
     }
 
@@ -130,7 +130,7 @@ data:
     // You can specify multiple loki.source.file components by giving them different labels.
     loki.source.file "node_logs" {
       targets    = local.file_match.node_logs.targets
-      forward_to = [loki.write.<WRITE_COMPONENT_NAME>.receiver]
+      forward_to = [loki.write.local_logs.receiver]
     }
 
     // discovery.kubernetes allows you to find scrape targets from Kubernetes resources.
@@ -213,7 +213,7 @@ data:
     loki.process "pod_logs" {
       stage.static_labels {
           values = {
-            cluster = "<CLUSTER_NAME>",
+            cluster = "microk8s-lab1",
           }
       }
 
