@@ -178,7 +178,7 @@ async fn track_metrics(req: Request, next: Next) -> impl IntoResponse {
 async fn profile_request(req: Request, next: Next) -> impl IntoResponse {
     // Sample only a small percentage of requests (e.g., 5%)
     // This significantly reduces the overhead of profiling
-    const SAMPLE_RATE: f64 = 1.00; // 5% sampling rate
+    const SAMPLE_RATE: f64 = 0.25; // 25% sampling rate
 
     let should_profile = rand::thread_rng().gen_bool(SAMPLE_RATE);
 
