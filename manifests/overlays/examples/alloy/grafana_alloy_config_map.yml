@@ -217,5 +217,5 @@ data:
           }
       }
 
-      forward_to = [loki.write.<WRITE_COMPONENT_NAME>.receiver]
+      forward_to = [loki.write.local_logs.receiver]
     }
