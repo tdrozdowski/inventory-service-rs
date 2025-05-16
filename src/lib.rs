@@ -184,6 +184,7 @@ async fn profile_request(req: Request, next: Next) -> impl IntoResponse {
 
     if !should_profile {
         // Skip profiling for most requests
+        debug!("Skipping profiling for request");
         return next.run(req).await;
     }
 
