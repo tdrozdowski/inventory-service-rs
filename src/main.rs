@@ -67,34 +67,34 @@ async fn init() {
 
     let tracer = tracer_provider.tracer("inventory-service");
 
-    // Configure the OTLP log exporter
-    let log_exporter = opentelemetry_otlp::LogExporter::builder()
-        .with_http() // Use HTTP transport instead of gRPC
-        .with_endpoint(otlp_endpoint.replace("4317", "4318")) // Use HTTP port 4318 instead of gRPC port 4317
-        .build()
-        .expect("Failed to create OTLP log exporter");
-
-    let log_provider = opentelemetry_sdk::logs::SdkLoggerProvider::builder()
-        .with_batch_exporter(log_exporter)
-        .with_resource(
-            Resource::builder()
-                .with_attribute(KeyValue::new("service.name", service_name.clone()))
-                .build(),
-        )
-        .build();
-    let filter_otel = EnvFilter::new("info")
-        .add_directive("hyper=off".parse().unwrap())
-        .add_directive("opentelemetry=off".parse().unwrap())
-        .add_directive("tonic=off".parse().unwrap())
-        .add_directive("h2=off".parse().unwrap())
-        .add_directive("reqwest=off".parse().unwrap());
-    let otel_logger_layer =
-        layer::OpenTelemetryTracingBridge::new(&log_provider).with_filter(filter_otel);
-
-    // Fixed OTLP log exporter error "unknown service opentelemetry.proto.collector.logs.v1.LogsService"
-    // by switching from gRPC (port 4317) to HTTP (port 4318) protocol for both trace and log exporters
-
-    // Create a tracing layer for exporting traces
+    // // Configure the OTLP log exporter
+    // let log_exporter = opentelemetry_otlp::LogExporter::builder()
+    //     .with_http() // Use HTTP transport instead of gRPC
+    //     .with_endpoint(otlp_endpoint.replace("4317", "4318")) // Use HTTP port 4318 instead of gRPC port 4317
+    //     .build()
+    //     .expect("Failed to create OTLP log exporter");
+    //
+    // let log_provider = opentelemetry_sdk::logs::SdkLoggerProvider::builder()
+    //     .with_batch_exporter(log_exporter)
+    //     .with_resource(
+    //         Resource::builder()
+    //             .with_attribute(KeyValue::new("service.name", service_name.clone()))
+    //             .build(),
+    //     )
+    //     .build();
+    // let filter_otel = EnvFilter::new("info")
+    //     .add_directive("hyper=off".parse().unwrap())
+    //     .add_directive("opentelemetry=off".parse().unwrap())
+    //     .add_directive("tonic=off".parse().unwrap())
+    //     .add_directive("h2=off".parse().unwrap())
+    //     .add_directive("reqwest=off".parse().unwrap());
+    // let otel_logger_layer =
+    //     layer::OpenTelemetryTracingBridge::new(&log_provider).with_filter(filter_otel);
+    //
+    // // Fixed OTLP log exporter error "unknown service opentelemetry.proto.collector.logs.v1.LogsService"
+    // // by switching from gRPC (port 4317) to HTTP (port 4318) protocol for both trace and log exporters
+    //
+    // // Create a tracing layer for exporting traces
     let otel_tracer_layer = tracing_opentelemetry::layer().with_tracer(tracer);
 
     // Create a filter for the main subscriber that filters out h2 logs and opentelemetry_sdk debug logs
@@ -108,7 +108,7 @@ async fn init() {
         .with(main_filter)
         .with(tracing_subscriber::fmt::layer()) // For local debugging
         .with(otel_tracer_layer) // Add OTLP trace layer
-        .with(otel_logger_layer) // Add OTLP log layer
+        //.with(otel_logger_layer) // Add OTLP log layer
         .init();
 
     info!("Server initialization started...");
